@@ -1,0 +1,16 @@
+CREATE TABLE "{{.TableName}}" (
+    "id" uuid PRIMARY KEY,
+{{- $lastIndex := sub (len .Columns) 1 -}}
+{{range $idx, $col := .Columns -}}
+    {{createColumn . -}}
+    {{if ne $lastIndex $idx -}}        
+        ,
+    {{end -}}
+{{end }}
+);
+
+{{range .Columns -}}
+    {{if .IsIndexed -}}
+CREATE INDEX "{{camelCase $.TableName}}_{{camelCase .Name}}_idx" ON "{{$.TableName}}" ("{{.Name}}");
+    {{end -}}
+{{end }}
