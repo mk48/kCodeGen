@@ -1,0 +1,82 @@
+package service
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
+	"github.com/samber/lo"
+
+	"ss-server/internal/util"
+)
+
+{{$TableNamePascalCase := pascalCase .TableName}}
+
+type (
+    {{$TableNamePascalCase}}Model struct {
+    Count             uint
+    Id                string        `json:"id" db:"id"`
+    {{range .Columns -}}
+    {{createColumnForStruct .}}
+    {{end -}}
+    }
+
+    {{$TableNamePascalCase}}Service struct {
+		DB *sqlx.DB
+	}
+)
+
+func (m *{{$TableNamePascalCase}}Model) RemoveNullSub() {
+    {{range .Columns -}}
+    {{if .RefTable -}}
+	if m.{{pascalCase .Name}}.Id == nil {
+		m.{{pascalCase .Name}} = nil
+	}
+    {{end -}}
+    {{end -}}
+}
+
+
+
+func (service {{$TableNamePascalCase}}Service) Get(id string) (*{{$TableNamePascalCase}}Model, error) {
+
+	query := `SELECT
+	"p"."id",
+    {{range .Columns -}}
+    {{if notNull .RefTable -}}
+	{{$.AliasTableNameInSelect}}."{{.Name}}",
+    {{end -}}
+    {{end -}}
+
+    {{range .Columns -}}
+    {{if .RefTable -}}
+    {{range .RefTable.SelectColumns -}}
+             {{.}}
+    {{end -}}
+    {{end -}}
+    {{end -}}
+	"uPerson"."id" AS "user.id",
+	"uPerson"."email" AS "user.email",
+	"uCreatedBy"."id" AS "createdBy.id",
+	"uCreatedBy"."email" AS "createdBy.email",
+	"uUpdatedBy"."id" AS "updatedBy.id",
+	"uUpdatedBy"."email" AS "updatedBy.email"
+  FROM
+  "persons" "p"
+	LEFT JOIN "users" "uPerson" ON "uPerson"."person_id" = "p"."id"
+	INNER JOIN "users" "uCreatedBy" ON "uCreatedBy"."id" = "p"."created_by"
+	LEFT JOIN "users" "uUpdatedBy" ON "uUpdatedBy"."id" = "p"."updated_by"
+WHERE p.id = $1
+	`
+
+	person := PersonModel{}
+	err := service.DB.Get(&person, query, id)
+	if err != nil {
+		return nil, err
+	}
+
+	person.RemoveNullSub()
+	return &person, nil
+}

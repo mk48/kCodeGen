@@ -1,6 +1,6 @@
 CREATE TABLE "{{.TableName}}" (
     "id" uuid PRIMARY KEY,
-{{- $lastIndex := sub (len .Columns) 1 -}}
+{{$lastIndex := sub (len .Columns) 1 -}}
 {{range $idx, $col := .Columns -}}
     {{createColumn . -}}
     {{if ne $lastIndex $idx -}}        
