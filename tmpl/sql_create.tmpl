@@ -1,12 +1,12 @@
 CREATE TABLE "{{.TableName}}" (
     "id" uuid PRIMARY KEY,
-{{$lastIndex := sub (len .Columns) 1 -}}
-{{range $idx, $col := .Columns -}}
-    {{createColumn . -}}
-    {{if ne $lastIndex $idx -}}        
-        ,
-    {{end -}}
-{{end }}
+    {{range $idx, $col := .Columns -}}
+    {{createColumn . -}},
+    {{end }}
+    "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT (now()),
+    "created_by" uuid NOT NULL REFERENCES users(id),
+    "updated_at" TIMESTAMP WITH TIME ZONE NULL,
+    "updated_by" uuid NULL REFERENCES users(id)
 );
 
 {{range .Columns -}}
@@ -14,3 +14,6 @@ CREATE TABLE "{{.TableName}}" (
 CREATE INDEX "{{camelCase $.TableName}}_{{camelCase .Name}}_idx" ON "{{$.TableName}}" ("{{.Name}}");
     {{end -}}
 {{end }}
+
+CREATE INDEX "{{camelCase $.TableName}}_createdBy_idx" ON "{{$.TableName}}" ("created_by");
+CREATE INDEX "{{camelCase $.TableName}}_updatedBy_idx" ON "{{$.TableName}}" ("updated_by");

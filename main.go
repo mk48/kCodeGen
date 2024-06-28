@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 	"text/template"
 
 	"github.com/huandu/xstrings"
@@ -13,6 +14,7 @@ import (
 type CodeGen struct {
 	TableName              string
 	AliasTableNameInSelect string
+	ListSearchColumn       string
 	Columns                []Column
 }
 
@@ -52,7 +54,7 @@ func main() {
 			DataTypeLen: 20,
 			IsNull:      true,
 		},
-		{
+		/*{
 			Name:     "created_by",
 			DataType: "uuid",
 			RefTable: &RefTable{Name: "users", SelectModel: "IdEmailModel", SelectColumns: []string{"id", "email"}},
@@ -74,10 +76,10 @@ func main() {
 			DataType:  "time",
 			IsNull:    true,
 			IsIndexed: true,
-		},
+		},*/
 	}
 
-	codeGen := CodeGen{TableName: "persons", AliasTableNameInSelect: "p", Columns: columns}
+	codeGen := CodeGen{TableName: "persons", ListSearchColumn: "name", AliasTableNameInSelect: "p", Columns: columns}
 
 	//----------- func
 	createColumn := func(column Column) string {
@@ -107,8 +109,8 @@ func main() {
 		return fmt.Sprintf("\"%s\" %s %s %s", column.Name, dataType, isNull, ref)
 	}
 
-	left := func(str string) string {
-		return str[0:1]
+	left := func(str string, len int) string {
+		return str[0:len]
 	}
 
 	notNull := func(n interface{}) bool {
@@ -155,6 +157,51 @@ func main() {
 
 		return fmt.Sprintf("%s\t%s\t`json:\"%s\" db:\"%s\"`", xstrings.ToPascalCase(column.Name), goDataTypeWithNull, xstrings.ToCamelCase(column.Name), column.Name)
 	}
+
+	generateSelectForRefColumn := func(columns []Column) string {
+		//"uCreatedBy"."id" AS "createdBy.id",
+		//"uCreatedBy"."email" AS "createdBy.email",
+
+		selectColumns := []string{}
+		for _, column := range columns {
+			if column.RefTable != nil {
+
+				for _, selCol := range column.RefTable.SelectColumns {
+					sel := fmt.Sprintf("%s%s.\"%s\" AS \"%s.%s\"", column.RefTable.Name[0:1], xstrings.ToPascalCase(column.Name), selCol, xstrings.ToCamelCase(column.Name), selCol)
+					selectColumns = append(selectColumns, sel)
+				}
+			}
+		}
+		selectColumnsWithComma := strings.Join(selectColumns, ",\n")
+		return selectColumnsWithComma
+	}
+
+	joinInSelect := func(cg CodeGen) string {
+		/*
+			LEFT JOIN "users" "uPerson" ON "uPerson"."person_id" = "p"."id"
+			INNER JOIN "users" "uCreatedBy" ON "uCreatedBy"."id" = "p"."created_by"
+			LEFT JOIN "users" "uUpdatedBy" ON "uUpdatedBy"."id" = "p"."updated_by"
+		*/
+		columns = cg.Columns
+
+		joins := []string{}
+		for _, column := range columns {
+			if column.RefTable != nil {
+				joinType := "INNER JOIN"
+				if column.IsNull {
+					joinType = "LEFT JOIN"
+				}
+
+				alias := fmt.Sprintf("%s%s", column.RefTable.Name[0:1], xstrings.ToPascalCase(column.Name))
+
+				join := fmt.Sprintf("%s \"%s\" %s ON %s.id = %s.\"%s\"", joinType, column.RefTable.Name, alias, alias, cg.AliasTableNameInSelect, column.Name)
+
+				joins = append(joins, join)
+			}
+		}
+
+		return strings.Join(joins, "\n")
+	}
 	//----------- func - end
 
 	//read template folder
@@ -168,13 +215,15 @@ func main() {
 
 		baseName := path.Base(templateFileName)
 		tmpl, err := template.New(baseName).Funcs(template.FuncMap{
-			"left":                  left,
-			"notNull":               notNull,
-			"createColumn":          createColumn,
-			"sub":                   sub,
-			"camelCase":             camelCase,
-			"pascalCase":            pascalCase,
-			"createColumnForStruct": createColumnForStruct,
+			"left":                       left,
+			"notNull":                    notNull,
+			"createColumn":               createColumn,
+			"sub":                        sub,
+			"camelCase":                  camelCase,
+			"pascalCase":                 pascalCase,
+			"createColumnForStruct":      createColumnForStruct,
+			"generateSelectForRefColumn": generateSelectForRefColumn,
+			"joinInSelect":               joinInSelect,
 		}).ParseFiles(templateFileName)
 		if err != nil {
 			panic(err)
