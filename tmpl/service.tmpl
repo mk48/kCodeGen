@@ -216,3 +216,41 @@ func (service {{$TableNamePascalCase}}Service) Update(id string, inputDTO *{{$Ta
 
 	return nil
 }
+
+
+func (service {{$TableNamePascalCase}}Service) GetHistory(id string) (*[]{{$TableNamePascalCase}}Model, error) {
+
+query := `SELECT
+	"p"."id",
+    {{range .Columns -}}
+    {{if notNull .RefTable -}}
+	hist."{{.Name}}",
+    {{end -}}
+    {{end -}}
+	"uCreatedBy"."id" AS "createdBy.id",
+	"uCreatedBy"."email" AS "createdBy.email",
+	"uUpdatedBy"."id" AS "updatedBy.id",
+	"uUpdatedBy"."email" AS "updatedBy.email",
+    {{generateSelectForRefColumn .Columns}}
+
+  FROM
+  "{{.TableName}}_history" AS hist
+  	INNER JOIN "users" "uCreatedBy" ON "uCreatedBy"."id" = hist."created_by"
+	LEFT JOIN "users" "uUpdatedBy" ON "uUpdatedBy"."id" = hist."updated_by"
+  {{joinInSelect .}}
+	WHERE hist.{{.TableName}}_id = $1
+	order by hist.updated_at desc
+	`
+
+	rows := []{{$TableNamePascalCase}}Model{}
+	if err := service.DB.Select(&rows, query, id); err != nil {
+		return nil, err
+	}
+
+	//----- keep null as null -----
+	for _, row := range rows {
+		row.RemoveNullSub()
+	}
+
+	return &rows, nil
+}
