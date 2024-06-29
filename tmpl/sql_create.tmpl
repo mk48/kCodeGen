@@ -17,3 +17,18 @@ CREATE INDEX "{{camelCase $.TableName}}_{{camelCase .Name}}_idx" ON "{{$.TableNa
 
 CREATE INDEX "{{camelCase $.TableName}}_createdBy_idx" ON "{{$.TableName}}" ("created_by");
 CREATE INDEX "{{camelCase $.TableName}}_updatedBy_idx" ON "{{$.TableName}}" ("updated_by");
+
+
+CREATE TABLE "{{.TableName}}_history" (
+  "id" uuid PRIMARY KEY,
+  "{{.TableName}}_id" uuid NOT NULL REFERENCES {{.TableName}}(id),
+   {{range $idx, $col := .Columns -}}
+   {{createColumn . -}},
+   {{end }}
+  "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT (now()),
+  "created_by" uuid NOT NULL REFERENCES users(id),
+  "updated_at" TIMESTAMP WITH TIME ZONE NULL,
+  "updated_by" uuid NULL REFERENCES users(id)
+);
+
+CREATE INDEX "{{.TableName}}History_{{.TableName}}Id_idx" ON "{{.TableName}}_history" ("{{.TableName}}_id");

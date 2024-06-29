@@ -27,9 +27,9 @@ type (
 	UpdatedBy         *IdEmailModel `json:"updatedBy" db:"updatedBy"`
     }
 
-	{{$TableNamePascalCase}}CreateRequest struct {
+	{{$TableNamePascalCase}}InputDTO struct {
 		{{range .Columns -}}
-		{{createColumnForStruct .}}
+		{{createColumnForStructInputDTO .}}
 		{{end -}}
 	}
 
@@ -156,18 +156,63 @@ func (service {{$TableNamePascalCase}}Service) List(filter *Filters) (*{{$TableN
 }
 
 
-func (service {{$TableNamePascalCase}}Service) Create(person *PersonCreateRequest, loggedInUserId string) (uuid.UUID, error) {
+func (service {{$TableNamePascalCase}}Service) Create(inputDto *{{$TableNamePascalCase}}InputDTO, loggedInUserId string) (uuid.UUID, error) {
 	var newId = uuid.New().String()
 	var created = time.Now()
 	insertRow := map[string]interface{}{
 		"id":         newId,
-		"email":      email,
-		"created_at": created,
+		{{range .Columns -}}
+		"{{.Name}}": inputDto.{{pascalCase .Name}},
+		{{end -}}
+		"created_at":          time.Now(),
+		"created_by":          loggedInUserId,
 	}
-	insertQuery := util.GenerateInsertQuery("users", insertRow)
+	insertQuery := util.GenerateInsertQuery("{{.TableName}}", insertRow)
 	if _, err := service.DB.NamedExec(insertQuery, insertRow); err != nil {
 		return nil, err
 	}
 
 	return newId, nil
+}
+
+
+func (service {{$TableNamePascalCase}}Service) Update(id string, inputDTO *{{$TableNamePascalCase}}InputDTO, loggedInUserId string) error {
+	tx := service.DB.MustBegin()
+
+	// move the current record into history
+	historyRecord := map[string]string{
+		"id":                  "{{.TableName}}_id",
+		{{range .Columns -}}
+		"{{.Name}}": "",
+		{{end -}}
+		"created_at":          "",
+		"created_by":          "",
+		"updated_at":          "",
+		"updated_by":          "",
+	}
+
+	queryHistory := util.GenerateInsertHistoryQuery("{{.TableName}}", "{{.TableName}}_history", historyRecord)
+	if _, err := tx.NamedExec(queryHistory, map[string]interface{}{"id": id}); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// update table
+	updateRecord := map[string]interface{}{
+		{{range .Columns -}}
+		"{{.Name}}": inputDTO.{{pascalCase .Name}},
+		{{end -}}
+		"updated_at":          time.Now(),
+		"updated_by":          loggedInUserId,
+	}
+	query := util.GenerateUpdateQuery("{{.TableName}}", updateRecord)
+	updateRecord["id"] = id //for where condition ID
+
+	if _, err := tx.NamedExec(query, updateRecord); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+
+	return nil
 }

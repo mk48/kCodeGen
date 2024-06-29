@@ -130,32 +130,20 @@ func main() {
 	}
 
 	createColumnForStruct := func(column Column) string {
-		var goDataType = ""
-		switch column.DataType {
-		case "uuid":
-			goDataType = "string"
-		case "time":
-			goDataType = "time.Time"
-		case "string":
-			goDataType = "string"
-		case "number":
-			goDataType = "int"
-			if column.DataTypeLen >= 0 {
-				goDataType = fmt.Sprintf("int%d", column.DataTypeLen)
-			}
+		goDataType := columnDataTypeToGoDataType(column)
+		return fmt.Sprintf("%s\t%s\t`json:\"%s\" db:\"%s\"`", xstrings.ToPascalCase(column.Name), goDataType, xstrings.ToCamelCase(column.Name), column.Name)
+	}
+
+	createColumnForStructInputDTO := func(column Column) string {
+		//Name              string                  `json:"name" validate:"required"`
+		goDataType := columnDataTypeToGoDataType(column)
+
+		validate := ""
+		if !column.IsNull {
+			validate = " validate:\"required\""
 		}
 
-		if column.RefTable != nil {
-			goDataType = column.RefTable.SelectModel
-		}
-
-		nullIndicator := ""
-		if column.IsNull {
-			nullIndicator = "*"
-		}
-		goDataTypeWithNull := fmt.Sprintf("%s%s", nullIndicator, goDataType)
-
-		return fmt.Sprintf("%s\t%s\t`json:\"%s\" db:\"%s\"`", xstrings.ToPascalCase(column.Name), goDataTypeWithNull, xstrings.ToCamelCase(column.Name), column.Name)
+		return fmt.Sprintf("%s\t%s\t`json:\"%s\"%s`", xstrings.ToPascalCase(column.Name), goDataType, xstrings.ToCamelCase(column.Name), validate)
 	}
 
 	generateSelectForRefColumn := func(columns []Column) string {
@@ -215,15 +203,16 @@ func main() {
 
 		baseName := path.Base(templateFileName)
 		tmpl, err := template.New(baseName).Funcs(template.FuncMap{
-			"left":                       left,
-			"notNull":                    notNull,
-			"createColumn":               createColumn,
-			"sub":                        sub,
-			"camelCase":                  camelCase,
-			"pascalCase":                 pascalCase,
-			"createColumnForStruct":      createColumnForStruct,
-			"generateSelectForRefColumn": generateSelectForRefColumn,
-			"joinInSelect":               joinInSelect,
+			"left":                          left,
+			"notNull":                       notNull,
+			"createColumn":                  createColumn,
+			"sub":                           sub,
+			"camelCase":                     camelCase,
+			"pascalCase":                    pascalCase,
+			"createColumnForStruct":         createColumnForStruct,
+			"generateSelectForRefColumn":    generateSelectForRefColumn,
+			"joinInSelect":                  joinInSelect,
+			"createColumnForStructInputDTO": createColumnForStructInputDTO,
 		}).ParseFiles(templateFileName)
 		if err != nil {
 			panic(err)
@@ -241,3 +230,31 @@ func main() {
 		}
 	}
 } // end main
+
+func columnDataTypeToGoDataType(column Column) string {
+	goDataType := ""
+	switch column.DataType {
+	case "uuid":
+		goDataType = "string"
+	case "time":
+		goDataType = "time.Time"
+	case "string":
+		goDataType = "string"
+	case "number":
+		goDataType = "int"
+		if column.DataTypeLen >= 0 {
+			goDataType = fmt.Sprintf("int%d", column.DataTypeLen)
+		}
+	}
+
+	if column.RefTable != nil {
+		goDataType = column.RefTable.SelectModel
+	}
+
+	nullIndicator := ""
+	if column.IsNull {
+		nullIndicator = "*"
+	}
+
+	return fmt.Sprintf("%s%s", nullIndicator, goDataType)
+}
