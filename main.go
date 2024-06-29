@@ -25,34 +25,38 @@ type RefTable struct {
 }
 
 type Column struct {
-	Name        string
-	DataType    string //uuid, string, time,
-	DataTypeLen int    // varchar(*)
-	RefTable    *RefTable
-	IsNull      bool
-	IsIndexed   bool
+	Name                     string
+	DataType                 string //uuid, string, time,
+	DataTypeLen              int    // varchar(*)
+	RefTable                 *RefTable
+	IsNull                   bool
+	IsIndexed                bool
+	IncludedInSearchDropDown bool
 }
 
 func main() {
 	columns := []Column{
 		{
-			Name:        "name",
-			DataType:    "string",
-			DataTypeLen: 100,
-			IsNull:      false,
-			IsIndexed:   true,
+			Name:                     "name",
+			DataType:                 "string",
+			DataTypeLen:              100,
+			IsNull:                   false,
+			IsIndexed:                true,
+			IncludedInSearchDropDown: true,
 		},
 		{
-			Name:        "mobile_country_code",
-			DataType:    "string",
-			DataTypeLen: 10,
-			IsNull:      true,
+			Name:                     "mobile_country_code",
+			DataType:                 "string",
+			DataTypeLen:              10,
+			IsNull:                   true,
+			IncludedInSearchDropDown: true,
 		},
 		{
-			Name:        "mobile_no",
-			DataType:    "string",
-			DataTypeLen: 20,
-			IsNull:      true,
+			Name:                     "mobile_no",
+			DataType:                 "string",
+			DataTypeLen:              20,
+			IsNull:                   true,
+			IncludedInSearchDropDown: true,
 		},
 		/*{
 			Name:     "created_by",
