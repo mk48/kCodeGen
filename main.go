@@ -125,6 +125,10 @@ func main() {
 		return n1 - n2
 	}
 
+	kebabCase := func(str string) string {
+		return xstrings.ToKebabCase(str)
+	}
+
 	camelCase := func(str string) string {
 		return xstrings.ToCamelCase(str)
 	}
@@ -217,6 +221,7 @@ func main() {
 			"generateSelectForRefColumn":    generateSelectForRefColumn,
 			"joinInSelect":                  joinInSelect,
 			"createColumnForStructInputDTO": createColumnForStructInputDTO,
+			"kebabCase":                     kebabCase,
 		}).ParseFiles(templateFileName)
 		if err != nil {
 			panic(err)
