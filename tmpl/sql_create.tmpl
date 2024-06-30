@@ -1,3 +1,4 @@
+-- +migrate Up
 CREATE TABLE "{{.TableName}}" (
     "id" uuid PRIMARY KEY,
     {{range $idx, $col := .Columns -}}
@@ -32,3 +33,7 @@ CREATE TABLE "{{.TableName}}_history" (
 );
 
 CREATE INDEX "{{.TableName}}History_{{.TableName}}Id_idx" ON "{{.TableName}}_history" ("{{.TableName}}_id");
+
+-- +migrate Down
+DROP TABLE IF EXISTS "{{.TableName}}" CASCADE;
+DROP TABLE IF EXISTS "{{.TableName}}_history" CASCADE;

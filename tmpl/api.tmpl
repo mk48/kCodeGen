@@ -157,7 +157,7 @@ func (app *application) Get{{$TableNamePascalCase}}History(c echo.Context) error
 // @Accept       json
 // @Produce      json
 // @Param        search   query      string  true  " {{kebabCase .TableName}} {{.ListSearchColumn}}(few chars)"
-// @Success      200  {object}  HttpResult{Result=[]service.$TableNamePascalCase}}SearchResponseDTO}
+// @Success      200  {object}  HttpResult{Result=[]service.{{$TableNamePascalCase}}SearchResponseDTO}
 // @Router       /api/{{kebabCase .TableName}}/search [get]
 func (app *application) Search{{$TableNamePascalCase}}Handler(c echo.Context) error {
 

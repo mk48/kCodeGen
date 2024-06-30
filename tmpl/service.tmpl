@@ -36,7 +36,9 @@ type (
 	{{$TableNamePascalCase}}SearchResponseDTO struct {
 		Id                string  `json:"id" db:"id"`
 		{{range .Columns -}}
+		{{if .IncludedInSearchDropDown -}}
 		{{createColumnForStruct .}}
+		{{end -}}
 		{{end -}}
 	}
 
@@ -69,13 +71,15 @@ func (m *{{$TableNamePascalCase}}Model) RemoveNullSub() {
 func (service {{$TableNamePascalCase}}Service) Get(id string) (*{{$TableNamePascalCase}}Model, error) {
 
 	query := `SELECT
-	"p"."id",
+	{{.AliasTableNameInSelect}}."id",
     {{range .Columns -}}
     {{if notNull .RefTable -}}
 	{{$.AliasTableNameInSelect}}."{{.Name}}"
     {{end -}}
     {{end -}}
     {{generateSelectForRefColumn .Columns}},
+	{{$.AliasTableNameInSelect}}.created_at,
+	{{$.AliasTableNameInSelect}}.updated_at,
 	"uCreatedBy"."id" AS "createdBy.id",
 	"uCreatedBy"."email" AS "createdBy.email",
 	"uUpdatedBy"."id" AS "updatedBy.id",
@@ -104,13 +108,15 @@ func (service {{$TableNamePascalCase}}Service) List(filter *Filters) (*{{$TableN
 	// select
 	query := `
 			SELECT COUNT(*) OVER(),
-			"p"."id",
+			{{.AliasTableNameInSelect}}."id",
 			{{range .Columns -}}
 			{{if notNull .RefTable -}}
 			{{$.AliasTableNameInSelect}}."{{.Name}}",
 			{{end -}}
 			{{end -}}
 			{{generateSelectForRefColumn .Columns}},
+			{{$.AliasTableNameInSelect}}.created_at,
+			{{$.AliasTableNameInSelect}}.updated_at,
 			"uCreatedBy"."id" AS "createdBy.id",
 			"uCreatedBy"."email" AS "createdBy.email",
 			"uUpdatedBy"."id" AS "updatedBy.id",
@@ -226,13 +232,15 @@ func (service {{$TableNamePascalCase}}Service) Update(id string, inputDTO *{{$Ta
 func (service {{$TableNamePascalCase}}Service) GetHistory(id string) (*[]{{$TableNamePascalCase}}Model, error) {
 
 	query := `SELECT
-	"p"."id",
+	hist."id",
     {{range .Columns -}}
     {{if notNull .RefTable -}}
 	hist."{{.Name}}",
     {{end -}}
     {{end -}}
     {{generateSelectForRefColumn .Columns}}	
+	hist.created_at,
+	hist.updated_at,
 	"uCreatedBy"."id" AS "createdBy.id",
 	"uCreatedBy"."email" AS "createdBy.email",
 	"uUpdatedBy"."id" AS "updatedBy.id",
@@ -270,7 +278,7 @@ func (service {{$TableNamePascalCase}}Service) Search(searchInput string) ([]{{$
     {{end -}}
 	"id"
 	FROM {{.TableName}} AS {{.AliasTableNameInSelect}}
-	WHERE (STRPOS(LOWER({{.AliasTableNameInSelect}}.{{.ListSearchColumn}}), $1) > 0
+	WHERE STRPOS(LOWER({{.AliasTableNameInSelect}}.{{.ListSearchColumn}}), $1) > 0
 	ORDER BY STRPOS(LOWER({{.AliasTableNameInSelect}}.{{.ListSearchColumn}}), $1);
 	`
 	
