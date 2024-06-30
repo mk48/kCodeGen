@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -227,13 +228,15 @@ func main() {
 			panic(err)
 		}
 
-		/*f, err := os.Create("./out.txt")
+		fileExtension := filepath.Ext(templateFile.Name())
+		fileNameWithoutExtension := strings.TrimSuffix(templateFile.Name(), fileExtension)
+		f, err := os.Create("./out/" + fileNameWithoutExtension + ".go")
 		if err != nil {
 			panic(err)
 		}
-		defer f.Close()*/
+		defer f.Close()
 
-		err = tmpl.Execute(os.Stdout, codeGen)
+		err = tmpl.Execute(f, codeGen)
 		if err != nil {
 			panic(err)
 		}

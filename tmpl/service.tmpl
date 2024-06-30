@@ -75,12 +75,11 @@ func (service {{$TableNamePascalCase}}Service) Get(id string) (*{{$TableNamePasc
 	{{$.AliasTableNameInSelect}}."{{.Name}}",
     {{end -}}
     {{end -}}
+    {{generateSelectForRefColumn .Columns}},
 	"uCreatedBy"."id" AS "createdBy.id",
 	"uCreatedBy"."email" AS "createdBy.email",
 	"uUpdatedBy"."id" AS "updatedBy.id",
-	"uUpdatedBy"."email" AS "updatedBy.email",
-    {{generateSelectForRefColumn .Columns}}
-
+	"uUpdatedBy"."email" AS "updatedBy.email"
   FROM
   "{{.TableName}}" "{{.AliasTableNameInSelect}}"
   	INNER JOIN "users" "uCreatedBy" ON "uCreatedBy"."id" = {{.AliasTableNameInSelect}}."created_by"
