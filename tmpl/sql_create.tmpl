@@ -13,7 +13,7 @@ CREATE TABLE "{{.TableName}}" (
     {{if .IsIndexed -}}
 CREATE INDEX "{{camelCase $.TableName}}_{{camelCase .Name}}_idx" ON "{{$.TableName}}" ("{{.Name}}");
     {{end -}}
-{{end }}
+{{end -}}
 
 CREATE INDEX "{{camelCase $.TableName}}_createdBy_idx" ON "{{$.TableName}}" ("created_by");
 CREATE INDEX "{{camelCase $.TableName}}_updatedBy_idx" ON "{{$.TableName}}" ("updated_by");

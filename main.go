@@ -40,12 +40,20 @@ func main() {
 		{
 			Name:                     "name",
 			DataType:                 "string",
-			DataTypeLen:              100,
+			DataTypeLen:              50,
 			IsNull:                   false,
 			IsIndexed:                true,
 			IncludedInSearchDropDown: true,
 		},
 		{
+			Name:                     "address",
+			DataType:                 "string",
+			DataTypeLen:              200,
+			IsNull:                   true,
+			IsIndexed:                false,
+			IncludedInSearchDropDown: false,
+		},
+		/*{
 			Name:                     "mobile_country_code",
 			DataType:                 "string",
 			DataTypeLen:              10,
@@ -59,7 +67,7 @@ func main() {
 			IsNull:                   true,
 			IncludedInSearchDropDown: true,
 		},
-		/*{
+		{
 			Name:     "created_by",
 			DataType: "uuid",
 			RefTable: &RefTable{Name: "users", SelectModel: "IdEmailModel", SelectColumns: []string{"id", "email"}},
@@ -84,7 +92,7 @@ func main() {
 		},*/
 	}
 
-	codeGen := CodeGen{TableName: "persons", ListSearchColumn: "name", AliasTableNameInSelect: "p", Columns: columns}
+	codeGen := CodeGen{TableName: "organizations", ListSearchColumn: "name", AliasTableNameInSelect: "org", Columns: columns}
 
 	//----------- func
 	createColumn := func(column Column) string {

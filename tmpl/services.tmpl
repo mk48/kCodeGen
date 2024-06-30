@@ -3,7 +3,7 @@
 {{$TableNamePascalCase}} interface {
     List(listRequest *Filters) (*{{$TableNamePascalCase}}ListPaginationResult, string, error)
     Get(id string) (*{{$TableNamePascalCase}}Model, error)
-    Create(inputDTO *{{$TableNamePascalCase}}InputDTO, userId string) (uuid.UUID, error)
+    Create(inputDTO *{{$TableNamePascalCase}}InputDTO, userId string) (*uuid.UUID, error)
     Update(id string, inputDTO *{{$TableNamePascalCase}}InputDTO, userId string) error
     GetHistory(id string) (*[]{{$TableNamePascalCase}}Model, error)
     Search(searchInput string) ([]{{$TableNamePascalCase}}SearchResponseDTO, string, error)
