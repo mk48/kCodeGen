@@ -1,0 +1,42 @@
+package dto
+
+import (
+	"time"
+)
+{{$TableNameFirstCaps := pascalCase .TableName}}
+
+type {{$TableNameFirstCaps}} struct {
+	Id        string     `json:"id"`
+
+    {{range .Columns -}}
+    {{if (eq .RefTable nil) -}}
+    {{pascalCase .Name}} {{sqlDataTypeToGoDataType .}} `json:"{{camelCase .Name}}"`
+    {{else}}
+    {{.RefTable.Model}} {{if .IsNull}}*{{end}}{{.RefTable.Model}} `json:"{{camelCase .RefTable.Model}}"`
+    {{end -}}
+    {{end -}}
+
+	CreatedAt time.Time  `json:"createdAt"`
+	CreatedBy IdEmail    `json:"createdBy"`
+	UpdatedAt *time.Time `json:"updatedAt"`
+	UpdatedBy *IdEmail   `json:"updatedBy"`
+}
+
+type {{$TableNameFirstCaps}}Request struct {
+    {{range .Columns -}}
+    {{pascalCase .Name}} {{sqlDataTypeToGoDataTypeForInput .}} `json:"{{camelCase .Name}}" {{if not .IsNull}}validate:"required"{{end}}`
+    {{end -}}
+}
+
+type {{$TableNameFirstCaps}}SearchResponse struct {
+    {{range .Columns -}}
+    {{if .IncludedInSearchDropDown -}}
+    {{pascalCase .Name}} {{sqlDataTypeToGoDataTypeForInput .}} `json:"{{camelCase .Name}}"`
+    {{end -}}
+    {{end -}}
+}
+
+type {{$TableNameFirstCaps}}ListPaginationResponse struct {
+	Pagination PaginationResult `json:"pagination"`
+	Items      []{{$TableNameFirstCaps}}   `json:"items"`
+}

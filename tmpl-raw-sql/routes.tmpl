@@ -1,0 +1,30 @@
+{{$TableNamePascalCase := pascalCase .TableName}}
+{{$TableNameKebabCase := kebabCase .TableName}}
+
+//----------------------- {{$TableNamePascalCase}} -----------------------
+apiGroup.GET("/{{$TableNameKebabCase}}", app.List{{$TableNamePascalCase}}Handler,
+    app.approvedUserMiddleware,
+    app.filterMiddleware([]string{"name", "created_at", "updated_at"}),
+)
+
+apiGroup.GET("/{{$TableNameKebabCase}}/:id", app.Get{{$TableNamePascalCase}}Handler,
+    app.approvedUserMiddleware,
+)
+
+apiGroup.GET("/{{$TableNameKebabCase}}/:id/history", app.Get{{$TableNamePascalCase}}History,
+    app.approvedUserMiddleware,
+)
+
+apiGroup.GET("/{{$TableNameKebabCase}}/search", app.Search{{$TableNamePascalCase}}Handler,
+    app.approvedUserMiddleware,
+)
+
+apiGroup.POST("/{{$TableNameKebabCase}}", app.Create{{$TableNamePascalCase}}Handler,
+    app.approvedUserMiddleware,
+    app.allowedRolesMiddleware([]string{"superadmin", "admin", "photographer"}),
+)
+
+apiGroup.PUT("/{{$TableNameKebabCase}}/:id", app.Update{{$TableNamePascalCase}}Handler,
+    app.approvedUserMiddleware,
+    app.allowedRolesMiddleware([]string{"superadmin", "admin", "photographer"}),
+)

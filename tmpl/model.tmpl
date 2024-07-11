@@ -1,0 +1,145 @@
+package model
+
+import (
+	"ss-server/internal/dto"
+	"time"
+
+	"github.com/uptrace/bun"
+)
+
+{{$TableNameFirstCaps := pascalCase .TableName}}
+
+type {{$TableNameFirstCaps}} struct {
+	bun.BaseModel `bun:"table:{{.TableName}},alias:{{.AliasTableNameInSelect}}"`
+
+	ID      string  `bun:"id,pk,type:uuid"`
+    {{range .Columns -}}
+    {{if (eq .RefTable nil) -}}
+    {{pascalCase .Name}} {{sqlDataTypeToGoDataType .}} `bun:"{{.Name}}{{if .IsNull}},nullzero{{else}},nullzero,notnull{{end}}"`
+    {{else -}}
+    {{pascalCase .Name}} {{if .IsNull}}*{{end}}string `bun:"{{.Name}}{{if .IsNull}},nullzero{{else}},nullzero,notnull{{end}}"`
+    {{end -}}
+    {{end}}
+
+	CreatedAt   time.Time  `bun:",nullzero,notnull,default:current_timestamp"`
+	UpdatedAt   *time.Time `bun:",nullzero"`
+	CreatedById string     `bun:"created_by,nullzero,notnull"`
+	UpdatedById *string    `bun:"updated_by,nullzero"`
+
+	CreatedBy UserIdEmail  `bun:"rel:belongs-to,join:created_by=id"`
+	UpdatedBy *UserIdEmail `bun:"rel:belongs-to,join:updated_by=id"`
+
+    {{range .Columns -}}
+    {{if not (eq .RefTable nil) -}}
+    {{pascalCase .RefTable.Model}} {{if .IsNull}}*{{end}}{{pascalCase .RefTable.Model}} `bun:"rel:belongs-to,join:{{.Name}}=id"`
+    {{end -}}
+    {{end -}}
+}
+
+
+func (mdl {{$TableNameFirstCaps}}) ToDto() dto.{{$TableNameFirstCaps}} {
+	d := dto.{{$TableNameFirstCaps}}{
+		Id:        mdl.ID,
+        {{range .Columns -}}
+        {{if (eq .RefTable nil) -}}
+        {{pascalCase .Name}}:  mdl.{{pascalCase .Name}},
+        {{else -}}
+        {{pascalCase .RefTable.Model}}: dto.{{.RefTable.Model}}{
+            {{$refTbl := pascalCase .RefTable.Model}}
+            {{range .RefTable.SelectColumns -}}
+			{{pascalCase .}}:    mdl.{{$refTbl}}.{{pascalCase .}},
+            {{end -}}
+		},
+        {{end -}}
+        {{end -}}
+		
+		CreatedAt: mdl.CreatedAt,
+		CreatedBy: dto.IdEmail{
+			Id:    mdl.CreatedBy.ID,
+			Email: mdl.CreatedBy.Email,
+		},
+	}
+
+	if mdl.UpdatedAt != nil {
+		d.UpdatedAt = mdl.UpdatedAt
+	}
+
+	if mdl.UpdatedBy != nil {
+		d.UpdatedBy = &dto.IdEmail{
+			Id:    mdl.UpdatedBy.ID,
+			Email: mdl.UpdatedBy.Email,
+		}
+	}
+
+	return d
+}
+
+{{if .IsHistoryTableNeeded}}
+
+type {{$TableNameFirstCaps}}History struct {
+	bun.BaseModel `bun:"table:{{.TableName}}_history,alias:h"`
+
+	ID      string  `bun:"id,pk,type:uuid"`
+	{{$TableNameFirstCaps}}Id   string  `bun:"{{.TableName}}_id,type:uuid"`
+	
+    {{range .Columns -}}
+    {{if (eq .RefTable nil) -}}
+    {{pascalCase .Name}} {{sqlDataTypeToGoDataType .}} `bun:"{{.Name}}{{if .IsNull}},nullzero{{else}},nullzero,notnull{{end}}"`
+    {{else -}}
+    {{pascalCase .Name}} {{if .IsNull}}*{{end}}string `bun:"{{.Name}}{{if .IsNull}},nullzero{{else}},nullzero,notnull{{end}}"`
+    {{end -}}
+    {{end}}
+
+	CreatedAt   time.Time  `bun:",nullzero,notnull,default:current_timestamp"`
+	UpdatedAt   *time.Time `bun:",nullzero"`
+	CreatedById string     `bun:"created_by,nullzero,notnull"`
+	UpdatedById *string    `bun:"updated_by,nullzero"`
+
+	CreatedBy UserIdEmail  `bun:"rel:belongs-to,join:created_by=id"`
+	UpdatedBy *UserIdEmail `bun:"rel:belongs-to,join:updated_by=id"`
+
+    {{range .Columns -}}
+    {{if not (eq .RefTable nil) -}}
+    {{pascalCase .RefTable.Model}} {{if .IsNull}}*{{end}}{{pascalCase .RefTable.Model}} `bun:"rel:belongs-to,join:{{.Name}}=id"`
+    {{end -}}
+    {{end -}}
+}
+
+func (mdl {{$TableNameFirstCaps}}History) ToDto() dto.{{$TableNameFirstCaps}} {
+	d := dto.{{$TableNameFirstCaps}}{
+		Id:        mdl.{{$TableNameFirstCaps}}Id,
+		{{range .Columns -}}
+        {{if (eq .RefTable nil) -}}
+        {{pascalCase .Name}}:  mdl.{{pascalCase .Name}},
+        {{else -}}
+        {{pascalCase .RefTable.Model}}: dto.{{.RefTable.Model}}{
+            {{$refTbl := pascalCase .RefTable.Model}}
+            {{range .RefTable.SelectColumns -}}
+			{{pascalCase .}}:    mdl.{{$refTbl}}.{{pascalCase .}},
+            {{end -}}
+		},
+        {{end -}}
+        {{end -}}
+		
+		CreatedAt: mdl.CreatedAt,
+		CreatedBy: dto.IdEmail{
+			Id:    mdl.CreatedBy.ID,
+			Email: mdl.CreatedBy.Email,
+		},
+	}
+
+	if mdl.UpdatedAt != nil {
+		d.UpdatedAt = mdl.UpdatedAt
+	}
+
+	if mdl.UpdatedBy != nil {
+		d.UpdatedBy = &dto.IdEmail{
+			Id:    mdl.UpdatedBy.ID,
+			Email: mdl.UpdatedBy.Email,
+		}
+	}
+
+	return d
+}
+
+{{end}}

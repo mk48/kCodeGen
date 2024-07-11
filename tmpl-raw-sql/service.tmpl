@@ -1,0 +1,292 @@
+package service
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
+	"github.com/samber/lo"
+
+	"ss-server/internal/util"
+)
+
+{{$TableNamePascalCase := pascalCase .TableName}}
+
+type (
+    {{$TableNamePascalCase}}Model struct {
+    Count             uint
+    Id                string        `json:"id" db:"id"`
+    {{range .Columns -}}
+    {{createColumnForStruct .}}
+    {{end -}}
+	CreatedAt         time.Time     `json:"createdAt" db:"created_at"`
+	CreatedBy         IdEmailModel  `json:"createdBy" db:"createdBy"`
+	UpdatedAt         *time.Time    `json:"updatedAt" db:"updated_at"`
+	UpdatedBy         *IdEmailModel `json:"updatedBy" db:"updatedBy"`
+    }
+
+	{{$TableNamePascalCase}}InputDTO struct {
+		{{range .Columns -}}
+		{{createColumnForStructInputDTO .}}
+		{{end -}}
+	}
+
+	{{$TableNamePascalCase}}SearchResponseDTO struct {
+		Id                string  `json:"id" db:"id"`
+		{{range .Columns -}}
+		{{if .IncludedInSearchDropDown -}}
+		{{createColumnForStruct .}}
+		{{end -}}
+		{{end -}}
+	}
+
+	{{$TableNamePascalCase}}ListPaginationResult struct {
+		Pagination PaginationResult `json:"pagination"`
+		Items      []{{$TableNamePascalCase}}Model    `json:"items"`
+	}
+
+    {{$TableNamePascalCase}}Service struct {
+		DB *sqlx.DB
+	}
+)
+
+func (m *{{$TableNamePascalCase}}Model) RemoveNullSub() {
+	if m.UpdatedBy.Id == nil {
+		m.UpdatedBy = nil
+	}
+
+    {{range .Columns -}}
+    {{if .RefTable -}}
+	if m.{{pascalCase .Name}}.Id == nil {
+		m.{{pascalCase .Name}} = nil
+	}
+    {{end -}}
+    {{end -}}
+}
+
+
+
+func (service {{$TableNamePascalCase}}Service) Get(id string) (*{{$TableNamePascalCase}}Model, error) {
+
+	query := `SELECT
+	{{.AliasTableNameInSelect}}."id",
+    {{range .Columns -}}
+    {{if notNull .RefTable -}}
+	{{$.AliasTableNameInSelect}}."{{.Name}}"
+    {{end -}}
+    {{end -}}
+    {{generateSelectForRefColumn .Columns}},
+	{{$.AliasTableNameInSelect}}.created_at,
+	{{$.AliasTableNameInSelect}}.updated_at,
+	"uCreatedBy"."id" AS "createdBy.id",
+	"uCreatedBy"."email" AS "createdBy.email",
+	"uUpdatedBy"."id" AS "updatedBy.id",
+	"uUpdatedBy"."email" AS "updatedBy.email"
+  	FROM
+	"{{.TableName}}" "{{.AliasTableNameInSelect}}"
+	INNER JOIN "users" "uCreatedBy" ON "uCreatedBy"."id" = {{.AliasTableNameInSelect}}."created_by"
+	LEFT JOIN "users" "uUpdatedBy" ON "uUpdatedBy"."id" = {{.AliasTableNameInSelect}}."updated_by"
+	{{joinInSelect .}}
+	WHERE {{.AliasTableNameInSelect}}.id = $1
+	`
+
+	model := {{$TableNamePascalCase}}Model{}
+	err := service.DB.Get(&model, query, id)
+	if err != nil {
+		return nil, err
+	}
+
+	model.RemoveNullSub()
+	return &model, nil
+}
+
+
+func (service {{$TableNamePascalCase}}Service) List(filter *Filters) (*{{$TableNamePascalCase}}ListPaginationResult, string, error) {
+
+	// select
+	query := `
+			SELECT COUNT(*) OVER(),
+			{{.AliasTableNameInSelect}}."id",
+			{{range .Columns -}}
+			{{if notNull .RefTable -}}
+			{{$.AliasTableNameInSelect}}."{{.Name}}",
+			{{end -}}
+			{{end -}}
+			{{generateSelectForRefColumn .Columns}},
+			{{$.AliasTableNameInSelect}}.created_at,
+			{{$.AliasTableNameInSelect}}.updated_at,
+			"uCreatedBy"."id" AS "createdBy.id",
+			"uCreatedBy"."email" AS "createdBy.email",
+			"uUpdatedBy"."id" AS "updatedBy.id",
+			"uUpdatedBy"."email" AS "updatedBy.email"
+			FROM
+			"{{.TableName}}" "{{.AliasTableNameInSelect}}"
+			INNER JOIN "users" "uCreatedBy" ON "uCreatedBy"."id" = {{.AliasTableNameInSelect}}."created_by"
+			LEFT JOIN "users" "uUpdatedBy" ON "uUpdatedBy"."id" = {{.AliasTableNameInSelect}}."updated_by"
+			{{joinInSelect .}}
+	`
+
+	// where
+	query = query + " WHERE (STRPOS(LOWER({{.AliasTableNameInSelect}}.{{.ListSearchColumn}}), LOWER($1)) > 0 OR $1 = '')"
+
+	// sort
+	if filter.Sort != "" {
+		var sortDbColumn = fmt.Sprintf("{{.AliasTableNameInSelect}}.%s", filter.SortColumn)
+		query = query + " ORDER BY " + sortDbColumn + " " + filter.SortDirection
+	}
+
+	// limit
+	query = query + fmt.Sprintf(" LIMIT %d OFFSET %d", filter.ResultsPerPage, filter.ResultsPerPage*(filter.Page-1))
+
+	rows := []{{$TableNamePascalCase}}Model{}
+	err := service.DB.Select(&rows, query, filter.Search)
+	if err != nil {
+		return nil, "Error while querying from DB", err
+	}
+
+	//----- keep null as null -----
+	for _, mdl := range rows {
+		mdl.RemoveNullSub()
+	}
+
+	//get total rows
+	var totalRows = 0
+	if len(rows) > 0 {
+		totalRows = int(rows[0].Count)
+	}
+
+	pagination := &{{$TableNamePascalCase}}ListPaginationResult{
+		Items: rows,
+		Pagination: PaginationResult{Page: filter.Page,
+			ResultsPerPage: filter.ResultsPerPage,
+			TotalResults:   totalRows},
+	}
+
+	return pagination, "", nil
+}
+
+
+func (service {{$TableNamePascalCase}}Service) Create(inputDto *{{$TableNamePascalCase}}InputDTO, loggedInUserId string) (*uuid.UUID, error) {
+	var newId = uuid.New()
+	insertRow := map[string]interface{}{
+		"id":         newId,
+		{{range .Columns -}}
+		"{{.Name}}": inputDto.{{pascalCase .Name}},
+		{{end -}}
+		"created_at":          time.Now(),
+		"created_by":          loggedInUserId,
+	}
+	insertQuery := util.GenerateInsertQuery("{{.TableName}}", insertRow)
+	if _, err := service.DB.NamedExec(insertQuery, insertRow); err != nil {
+		return nil, err
+	}
+
+	return &newId, nil
+}
+
+
+func (service {{$TableNamePascalCase}}Service) Update(id string, inputDTO *{{$TableNamePascalCase}}InputDTO, loggedInUserId string) error {
+	tx := service.DB.MustBegin()
+
+	// move the current record into history
+	historyRecord := map[string]string{
+		"id":                  "{{.TableName}}_id",
+		{{range .Columns -}}
+		"{{.Name}}": "",
+		{{end -}}
+		"created_at":          "",
+		"created_by":          "",
+		"updated_at":          "",
+		"updated_by":          "",
+	}
+
+	queryHistory := util.GenerateInsertHistoryQuery("{{.TableName}}", "{{.TableName}}_history", historyRecord)
+	if _, err := tx.NamedExec(queryHistory, map[string]interface{}{"id": id}); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// update table
+	updateRecord := map[string]interface{}{
+		{{range .Columns -}}
+		"{{.Name}}": inputDTO.{{pascalCase .Name}},
+		{{end -}}
+		"updated_at":          time.Now(),
+		"updated_by":          loggedInUserId,
+	}
+	query := util.GenerateUpdateQuery("{{.TableName}}", updateRecord)
+	updateRecord["id"] = id //for where condition ID
+
+	if _, err := tx.NamedExec(query, updateRecord); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+
+	return nil
+}
+
+
+func (service {{$TableNamePascalCase}}Service) GetHistory(id string) (*[]{{$TableNamePascalCase}}Model, error) {
+
+	query := `SELECT
+	hist."id",
+    {{range .Columns -}}
+    {{if notNull .RefTable -}}
+	hist."{{.Name}}",
+    {{end -}}
+    {{end -}}
+    {{generateSelectForRefColumn .Columns}}	
+	hist.created_at,
+	hist.updated_at,
+	"uCreatedBy"."id" AS "createdBy.id",
+	"uCreatedBy"."email" AS "createdBy.email",
+	"uUpdatedBy"."id" AS "updatedBy.id",
+	"uUpdatedBy"."email" AS "updatedBy.email"
+	FROM
+	"{{.TableName}}_history" AS hist
+	INNER JOIN "users" "uCreatedBy" ON "uCreatedBy"."id" = hist."created_by"
+	LEFT JOIN "users" "uUpdatedBy" ON "uUpdatedBy"."id" = hist."updated_by"
+	{{joinInSelect .}}
+	WHERE hist.{{.TableName}}_id = $1
+	order by hist.updated_at desc
+	`
+
+	rows := []{{$TableNamePascalCase}}Model{}
+	if err := service.DB.Select(&rows, query, id); err != nil {
+		return nil, err
+	}
+
+	//----- keep null as null -----
+	for _, row := range rows {
+		row.RemoveNullSub()
+	}
+
+	return &rows, nil
+}
+
+
+func (service {{$TableNamePascalCase}}Service) Search(searchInput string) ([]{{$TableNamePascalCase}}SearchResponseDTO, string, error) {
+	// select
+	query := `SELECT 
+	{{range .Columns -}}
+    {{if .IncludedInSearchDropDown -}}
+	"{{.Name}}",
+    {{end -}}
+    {{end -}}
+	"id"
+	FROM {{.TableName}} AS {{.AliasTableNameInSelect}}
+	WHERE STRPOS(LOWER({{.AliasTableNameInSelect}}.{{.ListSearchColumn}}), $1) > 0
+	ORDER BY STRPOS(LOWER({{.AliasTableNameInSelect}}.{{.ListSearchColumn}}), $1);
+	`
+	
+	rows := []{{$TableNamePascalCase}}SearchResponseDTO{}
+	err := service.DB.Select(&rows, query, strings.ToLower(searchInput))
+	if err != nil {
+		return nil, "Error while searching {{kebabCase .TableName}} from DB", err
+	}
+
+	return rows, "", nil
+}
