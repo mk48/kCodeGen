@@ -45,7 +45,7 @@ func (mdl {{$TableNameFirstCaps}}) ToDto() dto.{{$TableNameFirstCaps}} {
         {{pascalCase .Name}}:  mdl.{{pascalCase .Name}},
         {{else -}}
         {{pascalCase .RefTable.Model}}: dto.{{.RefTable.Model}}Min{
-            {{$refTbl := pascalCase .RefTable.Model}}
+            {{$refTbl := pascalCase .RefTable.Model -}}
             {{range .RefTable.SelectColumns -}}
 			{{pascalCase .}}:    mdl.{{$refTbl}}.{{pascalCase .}},
             {{end -}}

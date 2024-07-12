@@ -1,5 +1,5 @@
 {{$TableNameFirstCaps := pascalCase .TableName}}
-
+//---------------------------------------- {{$TableNameFirstCaps}} -----------------------------------
 {{$TableNameFirstCaps}} interface {
     GetById(ctx context.Context, db bun.IDB, id string) (*model.{{$TableNameFirstCaps}}, error)
 

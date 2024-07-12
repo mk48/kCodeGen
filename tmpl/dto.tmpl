@@ -11,7 +11,7 @@ type {{$TableNameFirstCaps}} struct {
     {{range .Columns -}}
     {{if (eq .RefTable nil) -}}
     {{pascalCase .Name}} {{sqlDataTypeToGoDataType .}} `json:"{{camelCase .Name}}"`
-    {{else}}
+    {{else -}}
     {{.RefTable.Model}} {{if .IsNull}}*{{end}}{{.RefTable.Model}}Min `json:"{{camelCase .RefTable.Model}}"`
     {{end -}}
     {{end -}}

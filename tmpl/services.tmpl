@@ -1,5 +1,5 @@
 {{$TableNameFirstCaps := pascalCase .TableName}}
-
+//---------------------------------------- {{$TableNameFirstCaps}} -----------------------------------
 {{$TableNameFirstCaps}} interface {
     Get(ctx context.Context, id string) (dto.{{$TableNameFirstCaps}}, error)
     List(ctx context.Context, filter dto.Filters) (*dto.{{$TableNameFirstCaps}}ListPaginationResponse, string, error)

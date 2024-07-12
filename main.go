@@ -44,15 +44,53 @@ func main() {
 			IncludedInSearchDropDown: true,
 		},
 		{
+			Name:                     "dt",
+			DataType:                 "time",
+			IsNull:                   false,
+			IsIndexed:                true,
+			IncludedInSearchDropDown: false,
+		},
+		{
+			Name:                     "location_type",
+			DataType:                 "string",
+			DataTypeLen:              50,
+			IsNull:                   true,
+			IsIndexed:                false,
+			IncludedInSearchDropDown: false,
+		},
+		{
+			Name:                     "address",
+			DataType:                 "string",
+			DataTypeLen:              200,
+			IsNull:                   true,
+			IsIndexed:                false,
+			IncludedInSearchDropDown: false,
+		},
+		{
+			Name:                     "notes",
+			DataType:                 "string",
+			DataTypeLen:              200,
+			IsNull:                   true,
+			IsIndexed:                false,
+			IncludedInSearchDropDown: false,
+		},
+		{
 			Name:      "organization_id",
 			DataType:  "uuid",
 			RefTable:  &RefTable{Name: "organizations", Model: "Organization", SelectColumns: []string{"id", "name"}},
 			IsNull:    false,
 			IsIndexed: true,
 		},
+		{
+			Name:      "team_id",
+			DataType:  "uuid",
+			RefTable:  &RefTable{Name: "team", Model: "Team", SelectColumns: []string{"id", "name"}},
+			IsNull:    false,
+			IsIndexed: true,
+		},
 	}
 
-	codeGen := CodeGen{TableName: "team", ListSearchColumn: "name", AliasTableNameInSelect: "t", IsHistoryTableNeeded: true, Columns: columns}
+	codeGen := CodeGen{TableName: "event", ListSearchColumn: "name", AliasTableNameInSelect: "e", IsHistoryTableNeeded: true, Columns: columns}
 
 	//read template folder
 	templateFiles, err := os.ReadDir("./tmpl/")
