@@ -12,7 +12,7 @@ import (
 type {{$TableNameFirstCaps}} struct {
 	bun.BaseModel `bun:"table:{{.TableName}},alias:{{.AliasTableNameInSelect}}"`
 
-	ID      string  `bun:"id,pk,type:uuid"`
+	Id      string  `bun:"id,pk,type:uuid"`
     {{range .Columns -}}
     {{if (eq .RefTable nil) -}}
     {{pascalCase .Name}} {{sqlDataTypeToGoDataType .}} `bun:"{{.Name}}{{if .IsNull}},nullzero{{else}},nullzero,notnull{{end}}"`
@@ -39,12 +39,12 @@ type {{$TableNameFirstCaps}} struct {
 
 func (mdl {{$TableNameFirstCaps}}) ToDto() dto.{{$TableNameFirstCaps}} {
 	d := dto.{{$TableNameFirstCaps}}{
-		Id:        mdl.ID,
+		Id:        mdl.Id,
         {{range .Columns -}}
         {{if (eq .RefTable nil) -}}
         {{pascalCase .Name}}:  mdl.{{pascalCase .Name}},
         {{else -}}
-        {{pascalCase .RefTable.Model}}: dto.{{.RefTable.Model}}{
+        {{pascalCase .RefTable.Model}}: dto.{{.RefTable.Model}}Min{
             {{$refTbl := pascalCase .RefTable.Model}}
             {{range .RefTable.SelectColumns -}}
 			{{pascalCase .}}:    mdl.{{$refTbl}}.{{pascalCase .}},
@@ -74,12 +74,25 @@ func (mdl {{$TableNameFirstCaps}}) ToDto() dto.{{$TableNameFirstCaps}} {
 	return d
 }
 
+func (mdl {{$TableNameFirstCaps}}) ToMinDto() dto.{{$TableNameFirstCaps}}Min {
+	d := dto.{{$TableNameFirstCaps}}Min{
+		Id:   mdl.Id,
+		{{range .Columns -}}
+		{{if .IncludedInSearchDropDown -}}
+		{{pascalCase .Name}}:	mdl.{{pascalCase .Name}},
+		{{end -}}
+		{{end -}}
+	}
+
+	return d
+}
+
 {{if .IsHistoryTableNeeded}}
 
 type {{$TableNameFirstCaps}}History struct {
 	bun.BaseModel `bun:"table:{{.TableName}}_history,alias:h"`
 
-	ID      string  `bun:"id,pk,type:uuid"`
+	Id      string  `bun:"id,pk,type:uuid"`
 	{{$TableNameFirstCaps}}Id   string  `bun:"{{.TableName}}_id,type:uuid"`
 	
     {{range .Columns -}}
@@ -112,7 +125,7 @@ func (mdl {{$TableNameFirstCaps}}History) ToDto() dto.{{$TableNameFirstCaps}} {
         {{if (eq .RefTable nil) -}}
         {{pascalCase .Name}}:  mdl.{{pascalCase .Name}},
         {{else -}}
-        {{pascalCase .RefTable.Model}}: dto.{{.RefTable.Model}}{
+        {{pascalCase .RefTable.Model}}: dto.{{.RefTable.Model}}Min{
             {{$refTbl := pascalCase .RefTable.Model}}
             {{range .RefTable.SelectColumns -}}
 			{{pascalCase .}}:    mdl.{{$refTbl}}.{{pascalCase .}},

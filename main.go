@@ -79,6 +79,7 @@ func main() {
 			"kebabCase":                       kebabCase,
 			"sqlDataTypeToGoDataType":         sqlDataTypeToGoDataType,
 			"sqlDataTypeToGoDataTypeForInput": sqlDataTypeToGoDataTypeForInput,
+			//"StringsJoin": strings.Join,
 		}).ParseFiles(templateFileName)
 		if err != nil {
 			panic(err)

@@ -1,0 +1,189 @@
+package repository
+
+import (
+	"context"
+	"fmt"
+	"ss-server/internal/model"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/uptrace/bun"
+)
+{{$TableNameFirstCaps := pascalCase .TableName}}
+
+type {{$TableNameFirstCaps}}Repository struct{}
+
+//------------------------------------------ func ----------------------------------------
+
+func (repo {{$TableNameFirstCaps}}Repository) GetById(ctx context.Context, db bun.IDB, id string) (*model.{{$TableNameFirstCaps}}, error) {
+	mdl := new(model.{{$TableNameFirstCaps}})
+	err := db.NewSelect().
+		Model(mdl).
+		{{range .Columns -}}
+		{{if not (eq .RefTable nil) -}}
+		Relation("{{pascalCase .RefTable.Model}}", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column(
+			{{range .RefTable.SelectColumns -}}
+			"{{.}}",
+			{{end -}}
+			)
+		}).
+		{{end -}}
+		{{end -}}
+		Relation("CreatedBy", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column("id", "email")
+		}).
+		Relation("UpdatedBy", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column("id", "email")
+		}).
+		Where("{{.AliasTableNameInSelect}}.id = ?", id).
+		Scan(ctx)
+
+	return mdl, err
+}
+
+func (repo {{$TableNameFirstCaps}}Repository) ListPagination(
+	ctx context.Context,
+	db bun.IDB,
+	pageNo int,
+	recordsPerPage int,
+	sortCol string,
+	sortDirection string,
+	searchValue string,
+) ([]model.{{$TableNameFirstCaps}}, int, error) {
+	mdl := new([]model.{{$TableNameFirstCaps}})
+	selQuery := db.NewSelect().
+		Model(mdl).
+		{{range .Columns -}}
+		{{if not (eq .RefTable nil) -}}
+		Relation("{{pascalCase .RefTable.Model}}", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column(
+			{{range .RefTable.SelectColumns -}}
+			"{{.}}",
+			{{end -}}
+			)
+		}).
+		{{end -}}
+		{{end -}}
+		Relation("CreatedBy", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column("id", "email")
+		}).
+		Relation("UpdatedBy", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column("id", "email")
+		})
+
+	//where
+	if searchValue != "" {
+		selQuery.Where("{{.AliasTableNameInSelect}}.{{.ListSearchColumn}} ILIKE ?", "%"+searchValue+"%")
+	}
+
+	//order by
+	if sortCol != "" {
+		selQuery.Order(sortCol + " " + sortDirection)
+	}
+
+	//limit
+	selQuery.Limit(recordsPerPage).Offset(recordsPerPage * (pageNo - 1))
+
+	count, err := selQuery.ScanAndCount(ctx)
+
+	return *mdl, count, err
+}
+
+func (repo {{$TableNameFirstCaps}}Repository) Create(ctx context.Context, db bun.IDB, mdl *model.{{$TableNameFirstCaps}}) error {
+	_, err := db.NewInsert().Model(mdl).Exec(ctx)
+	return err
+}
+
+func (repo {{$TableNameFirstCaps}}Repository) Update(ctx context.Context, db bun.IDB, id string, updatedMdl *model.{{$TableNameFirstCaps}}, loggedInUserId string) error {
+	//get the current row by id
+	mdlInDB := new(model.{{$TableNameFirstCaps}})
+	err := db.NewSelect().
+		Model(mdlInDB).
+		Where("{{.AliasTableNameInSelect}}.id = ?", id).
+		Scan(ctx)
+	if err != nil {
+		return fmt.Errorf("unable to get {{.TableName}} for update. err: %s", err)
+	}
+
+	//insert history record
+	mdlHistory := &model.{{$TableNameFirstCaps}}History{
+		Id:          uuid.New().String(),
+		{{$TableNameFirstCaps}}Id:       mdlInDB.Id,
+		{{range .Columns -}}
+		{{pascalCase .Name}}:	mdlInDB.{{pascalCase .Name}},
+		{{end -}}
+		CreatedAt:   mdlInDB.CreatedAt,
+		CreatedById: mdlInDB.CreatedById,
+		UpdatedAt:   mdlInDB.UpdatedAt,
+		UpdatedById: mdlInDB.UpdatedById,
+	}
+	_, err = db.NewInsert().Model(mdlHistory).Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("unable to create history record for {{.TableName}}. err: %s", err)
+	}
+
+	//update the record
+	_, err = db.NewUpdate().
+		Model(updatedMdl).
+		{{range .Columns -}}
+		SetColumn("{{.Name}}", "?", updatedMdl.{{pascalCase .Name}}).
+		{{end -}}
+		SetColumn("updated_at", "?", time.Now()).
+		SetColumn("updated_by", "?", loggedInUserId).
+		Where("id = ?", id).
+		Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("unable to update {{.TableName}}. err: %s", err)
+	}
+
+	return nil
+}
+
+func (repo {{$TableNameFirstCaps}}Repository) GetHistory(ctx context.Context, db bun.IDB, id string) ([]model.{{$TableNameFirstCaps}}History, error) {
+	mdlHistory := new([]model.{{$TableNameFirstCaps}}History)
+	err := db.NewSelect().
+		Model(mdlHistory).
+		{{range .Columns -}}
+		{{if not (eq .RefTable nil) -}}
+		Relation("{{pascalCase .RefTable.Model}}", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column(
+			{{range .RefTable.SelectColumns -}}
+			"{{.}}",
+			{{end -}}
+			)
+		}).
+		{{end -}}
+		{{end -}}
+		Relation("CreatedBy", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column("id", "email")
+		}).
+		Relation("UpdatedBy", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column("id", "email")
+		}).
+		Where("h.{{.TableName}}_id = ?", id).
+		Scan(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unable to update {{.TableName}}'s history details. err: %s", err)
+	}
+
+	return *mdlHistory, nil
+}
+
+func (repo {{$TableNameFirstCaps}}Repository) Search(ctx context.Context, db bun.IDB, searchInput string) ([]model.{{$TableNameFirstCaps}}, error) {
+	mdl := new([]model.{{$TableNameFirstCaps}})
+	err := db.NewSelect().
+		Model(mdl).
+		Column(
+		"id",
+		{{range .Columns -}}
+		{{if .IncludedInSearchDropDown -}}
+        "{{.Name}}",
+    	{{end -}}
+    	{{end -}}
+		).
+		Where("{{.AliasTableNameInSelect}}.{{.ListSearchColumn}} ILIKE ?", "%"+searchInput+"%").
+		Scan(ctx)
+
+	return *mdl, err
+}

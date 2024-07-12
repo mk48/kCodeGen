@@ -1,0 +1,26 @@
+{{$TableNameFirstCaps := pascalCase .TableName}}
+
+{{$TableNameFirstCaps}} interface {
+    GetById(ctx context.Context, db bun.IDB, id string) (*model.{{$TableNameFirstCaps}}, error)
+
+    ListPagination(
+        ctx context.Context,
+        db bun.IDB,
+        pageNo int,
+        recordsPerPage int,
+        sortCol string,
+        sortDirection string,
+        searchValue string,
+    ) ([]model.{{$TableNameFirstCaps}}, int, error)
+
+    Create(ctx context.Context, db bun.IDB, mdl *model.{{$TableNameFirstCaps}}) error
+
+    Update(ctx context.Context, db bun.IDB, id string, updatedMdl *model.{{$TableNameFirstCaps}}, loggedInUserId string) error
+
+    GetHistory(ctx context.Context, db bun.IDB, id string) ([]model.{{$TableNameFirstCaps}}History, error)
+
+    Search(ctx context.Context, db bun.IDB, searchInput string) ([]model.{{$TableNameFirstCaps}}, error)
+}
+
+//-----------------------------
+{{$TableNameFirstCaps}}: {{$TableNameFirstCaps}}Repository{},

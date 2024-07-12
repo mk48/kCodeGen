@@ -1,13 +1,13 @@
-{{$TableNamePascalCase := pascalCase .TableName}}
+{{$TableNameFirstCaps := pascalCase .TableName}}
 
-{{$TableNamePascalCase}} interface {
-    List(listRequest *Filters) (*{{$TableNamePascalCase}}ListPaginationResult, string, error)
-    Get(id string) (*{{$TableNamePascalCase}}Model, error)
-    Create(inputDTO *{{$TableNamePascalCase}}InputDTO, userId string) (*uuid.UUID, error)
-    Update(id string, inputDTO *{{$TableNamePascalCase}}InputDTO, userId string) error
-    GetHistory(id string) (*[]{{$TableNamePascalCase}}Model, error)
-    Search(searchInput string) ([]{{$TableNamePascalCase}}SearchResponseDTO, string, error)
+{{$TableNameFirstCaps}} interface {
+    Get(ctx context.Context, id string) (dto.{{$TableNameFirstCaps}}, error)
+    List(ctx context.Context, filter dto.Filters) (*dto.{{$TableNameFirstCaps}}ListPaginationResponse, string, error)
+    Create(ctx context.Context, inputDto dto.{{$TableNameFirstCaps}}Request, loggedInUserId string) (*uuid.UUID, error)
+    Update(ctx context.Context, id string, inputDTO dto.{{$TableNameFirstCaps}}Request, loggedInUserId string) error
+    GetHistory(ctx context.Context, id string) (*[]dto.{{$TableNameFirstCaps}}, error)
+    Search(ctx context.Context, searchInput string) ([]dto.{{$TableNameFirstCaps}}Min, error)
 }
 
 //-----------------------------------------
-{{$TableNamePascalCase}}:         {{$TableNamePascalCase}}Service{DB: db},
+{{$TableNameFirstCaps}}:  {{$TableNameFirstCaps}}Service{BunDB: bunDB, Repos: repos},

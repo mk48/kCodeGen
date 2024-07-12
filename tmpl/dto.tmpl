@@ -12,7 +12,7 @@ type {{$TableNameFirstCaps}} struct {
     {{if (eq .RefTable nil) -}}
     {{pascalCase .Name}} {{sqlDataTypeToGoDataType .}} `json:"{{camelCase .Name}}"`
     {{else}}
-    {{.RefTable.Model}} {{if .IsNull}}*{{end}}{{.RefTable.Model}} `json:"{{camelCase .RefTable.Model}}"`
+    {{.RefTable.Model}} {{if .IsNull}}*{{end}}{{.RefTable.Model}}Min `json:"{{camelCase .RefTable.Model}}"`
     {{end -}}
     {{end -}}
 
@@ -28,7 +28,8 @@ type {{$TableNameFirstCaps}}Request struct {
     {{end -}}
 }
 
-type {{$TableNameFirstCaps}}SearchResponse struct {
+type {{$TableNameFirstCaps}}Min struct {
+    Id   string `json:"id"`
     {{range .Columns -}}
     {{if .IncludedInSearchDropDown -}}
     {{pascalCase .Name}} {{sqlDataTypeToGoDataTypeForInput .}} `json:"{{camelCase .Name}}"`
