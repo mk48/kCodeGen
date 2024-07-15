@@ -1,0 +1,94 @@
+{{$Table1FirstCaps := pascalCase .Table1}}
+{{$Table2FirstCaps := pascalCase .Table2}}
+{{$BothTableFirstCaps := print $Table1FirstCaps $Table2FirstCaps}}
+
+package service
+
+import (
+	"context"
+	"fmt"
+	"ss-server/internal/dto"
+	"ss-server/internal/model"
+	"ss-server/internal/repository"
+
+	"github.com/google/uuid"
+	"github.com/samber/lo"
+	"github.com/uptrace/bun"
+)
+
+type (
+	{{$BothTableFirstCaps}}Service struct {
+		BunDB *bun.DB
+		Repos *repository.Repositories
+	}
+)
+
+func (service {{$BothTableFirstCaps}}Service) Create(ctx context.Context, inputDto dto.{{$BothTableFirstCaps}}Request, loggedInUserId string) (*uuid.UUID, error) {
+	var newId = uuid.New()
+
+	mdl := &model.{{$BothTableFirstCaps}}{
+		Id:          newId.String(),
+		{{$Table1FirstCaps}}Id:     inputDto.{{$Table1FirstCaps}}Id,
+		{{$Table2FirstCaps}}Id:       inputDto.{{$Table2FirstCaps}}Id,
+		CreatedById: loggedInUserId,
+	}
+
+	err := service.Repos.{{$BothTableFirstCaps}}.Create(ctx, service.BunDB, mdl)
+	if err != nil {
+		return nil, err
+	}
+
+	return &newId, nil
+}
+
+func (service {{$BothTableFirstCaps}}Service) ListBy{{$Table1FirstCaps}}(ctx context.Context, {{.Table1}}Id string, pagination dto.Pagination) (*dto.{{$BothTableFirstCaps}}ListPaginationResponse, error) {
+	res, count, err := service.Repos.{{$BothTableFirstCaps}}.ListBy{{$Table1FirstCaps}}(
+		ctx,
+		service.BunDB,
+		{{.Table1}}Id,
+		pagination.Page,
+		pagination.ResultsPerPage,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("unable to load {{.Table1}}-{{.Table2}} list by {{.Table1}}. err: %s", err)
+	}
+
+	paginationResponse := dto.{{$BothTableFirstCaps}}ListPaginationResponse{
+		Items: lo.Map(res, func(m model.{{$BothTableFirstCaps}}, index int) dto.{{$BothTableFirstCaps}} { return m.ToDto() }),
+		Pagination: dto.PaginationResult{
+			Page:           (uint)(pagination.Page),
+			ResultsPerPage: (uint)(pagination.ResultsPerPage),
+			TotalResults:   count,
+		},
+	}
+
+	return &paginationResponse, nil
+}
+
+func (service {{$BothTableFirstCaps}}Service) ListBy{{$Table2FirstCaps}}(ctx context.Context, {{.Table2}}Id string, pagination dto.Pagination) (*dto.{{$BothTableFirstCaps}}ListPaginationResponse, error) {
+	res, count, err := service.Repos.{{$BothTableFirstCaps}}.ListBy{{$Table2FirstCaps}}(
+		ctx,
+		service.BunDB,
+		{{.Table2}}Id,
+		pagination.Page,
+		pagination.ResultsPerPage,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("unable to load {{.Table1}}-{{.Table2}} list by {{.Table2}}. err: %s", err)
+	}
+
+	paginationResponse := dto.{{$BothTableFirstCaps}}ListPaginationResponse{
+		Items: lo.Map(res, func(m model.{{$BothTableFirstCaps}}, index int) dto.{{$BothTableFirstCaps}} { return m.ToDto() }),
+		Pagination: dto.PaginationResult{
+			Page:           (uint)(pagination.Page),
+			ResultsPerPage: (uint)(pagination.ResultsPerPage),
+			TotalResults:   count,
+		},
+	}
+
+	return &paginationResponse, nil
+}
+
+func (service {{$BothTableFirstCaps}}Service) Delete(ctx context.Context, {{.Table1}}Id string, {{.Table2}}Id string, loggedInUserId string) error {
+	return service.Repos.{{$BothTableFirstCaps}}.Delete(ctx, service.BunDB, {{.Table1}}Id, {{.Table2}}Id, loggedInUserId)
+}

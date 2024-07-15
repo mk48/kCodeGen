@@ -1,0 +1,124 @@
+{{$Table1FirstCaps := pascalCase .Table1}}
+{{$Table2FirstCaps := pascalCase .Table2}}
+{{$BothTableFirstCaps := print $Table1FirstCaps $Table2FirstCaps}}
+
+package main
+
+import (
+	"net/http"
+	"ss-server/internal/dto"
+	"ss-server/internal/service"
+
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
+)
+
+// Create{{$BothTableFirstCaps}} godoc
+// @Security ApiKeyAuth
+// @Tags        {{.Table1}}-{{.Table2}}
+// @Summary     Create {{.Table1}}-{{.Table2}} - link table
+// @Accept      json
+// @Produce     json
+// @Param 		request 	body 	dto.{{$BothTableFirstCaps}}Request true "{{$Table1FirstCaps}} {{$Table2FirstCaps}}"
+// @Success     200  {object}  HttpResult{Result=dto.Id}
+// @Router      /api/{{.Table1}}-{{.Table2}} [post]
+func (app *application) Create{{$BothTableFirstCaps}}Handler(c echo.Context) error {
+	// parse input
+	var inputDTO dto.{{$BothTableFirstCaps}}Request
+	err := c.Bind(&inputDTO)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, HttpError(err, "Unable to parse input values"))
+	}
+
+	loggedInUser := c.Get("user").(*service.UserModelResponse)
+	newId, err := app.service.{{$BothTableFirstCaps}}.Create(c.Request().Context(), inputDTO, loggedInUser.Id)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, HttpError(err, "Error on creating new {{.Table1}}-{{.Table2}}"))
+	}
+
+	return c.JSON(http.StatusCreated, HttpData(dto.Id{Id: newId.String()}))
+}
+
+// List{{$BothTableFirstCaps}} godoc
+// @Security ApiKeyAuth
+// @Tags         {{.Table1}}-{{.Table2}}
+// @Summary      List {{.Table1}}-{{.Table2}} by {{.Table1}} id
+// @Description  get {{.Table1}}-{{.Table2}} list with pagination
+// @Accept       json
+// @Produce      json
+// @Param        {{.Table1}}-id   path      string  true  "{{$Table1FirstCaps}} Id"
+// @Param        results_per_page   query      int  	true  	"Results/page"
+// @Param        page   			query      int  	true  	"current page"
+// @Success      200  {object}  HttpResult{Result=dto.{{$BothTableFirstCaps}}ListPaginationResponse}
+// @Router       /api/{{.Table1}}-{{.Table2}}/by-{{.Table1}}/`{`{{.Table1}}-id`}` [get]
+func (app *application) List{{$BothTableFirstCaps}}By{{$Table1FirstCaps}}Handler(c echo.Context) error {
+	// {{.Table1}}-{{.Table2}}/by-{{.Table1}}/123-456-ere-23?results_per_page=10 & page=1
+	var pagination = c.Get("pagination").(dto.Pagination)
+
+	id := c.Param("{{.Table1}}-id")
+	if _, err := uuid.Parse(id); err != nil {
+		return c.JSON(http.StatusBadRequest, HttpError(err, "{{$Table1FirstCaps}} ID is not a valid UUID"))
+	}
+
+	result, err := app.service.{{$BothTableFirstCaps}}.ListBy{{$Table1FirstCaps}}(c.Request().Context(), id, pagination)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, HttpError(err, "Error in getting {{.Table1}}-{{.Table2}} by {{.Table1}} id"))
+	}
+
+	return c.JSON(http.StatusOK, HttpData(result))
+}
+
+// List{{$BothTableFirstCaps}} godoc
+// @Security ApiKeyAuth
+// @Tags         {{.Table1}}-{{.Table2}}
+// @Summary      List {{.Table1}}-{{.Table2}} by {{.Table2}} id
+// @Description  get {{.Table1}}-{{.Table2}} list with pagination
+// @Accept       json
+// @Produce      json
+// @Param        {{.Table2}}-id   path      string  true  "{{$Table2FirstCaps}} Id"
+// @Param        results_per_page   query      int  	true  	"Results/page"
+// @Param        page   			query      int  	true  	"current page"
+// @Success      200  {object}  HttpResult{Result=dto.{{$BothTableFirstCaps}}ListPaginationResponse}
+// @Router       /api/{{.Table1}}-{{.Table2}}/by-{{.Table2}}/`{`{{.Table2}}-id`}` [get]
+func (app *application) List{{$BothTableFirstCaps}}By{{$Table2FirstCaps}}Handler(c echo.Context) error {
+	// {{.Table1}}-{{.Table2}}/by-{{.Table2}}/123-456-ere-23?results_per_page=10 & page=1
+	var pagination = c.Get("pagination").(dto.Pagination)
+
+	id := c.Param("{{.Table2}}-id")
+	if _, err := uuid.Parse(id); err != nil {
+		return c.JSON(http.StatusBadRequest, HttpError(err, "{{$Table2FirstCaps}} ID is not a valid UUID"))
+	}
+
+	result, err := app.service.{{$BothTableFirstCaps}}.ListBy{{$Table2FirstCaps}}(c.Request().Context(), id, pagination)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, HttpError(err, "Error in getting {{.Table1}}-{{.Table2}} by {{.Table2}} id"))
+	}
+
+	return c.JSON(http.StatusOK, HttpData(result))
+}
+
+// Create{{$BothTableFirstCaps}} godoc
+// @Security ApiKeyAuth
+// @Tags        {{.Table1}}-{{.Table2}}
+// @Summary     Delete {{.Table1}}-{{.Table2}} - link
+// @Accept      json
+// @Produce     json
+// @Param 		request 	body 	dto.{{$BothTableFirstCaps}}Request true "{{$Table1FirstCaps}} {{$Table2FirstCaps}}"
+// @Success     200  {object}  HttpResult
+// @Router      /api/{{.Table1}}-{{.Table2}} [delete]
+func (app *application) Delete{{$BothTableFirstCaps}}Handler(c echo.Context) error {
+	// parse input
+	var inputDTO dto.{{$BothTableFirstCaps}}Request
+	err := c.Bind(&inputDTO)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, HttpError(err, "Unable to parse input values"))
+	}
+
+	loggedInUser := c.Get("user").(*service.UserModelResponse)
+	err = app.service.{{$BothTableFirstCaps}}.Delete(c.Request().Context(), inputDTO.{{$Table1FirstCaps}}Id, inputDTO.{{$Table2FirstCaps}}Id, loggedInUser.Id)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, HttpError(err, "Error on creating new {{.Table1}}-{{.Table2}}"))
+	}
+
+	return c.JSON(http.StatusOK, HttpSuccessStatus())
+}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -9,7 +10,7 @@ import (
 	"text/template"
 )
 
-type CodeGen struct {
+type CrudGen struct {
 	TableName              string
 	AliasTableNameInSelect string
 	ListSearchColumn       string
@@ -25,12 +26,18 @@ type RefTable struct {
 
 type Column struct {
 	Name                     string
-	DataType                 string //uuid, string, time,
+	DataType                 string //uuid, string, time, number
 	DataTypeLen              int    // varchar(*)
 	RefTable                 *RefTable
 	IsNull                   bool
 	IsIndexed                bool
 	IncludedInSearchDropDown bool
+}
+
+type ManyToManyLink struct {
+	Table1 string
+	Table2 string
+	Alias  string
 }
 
 func main() {
@@ -44,62 +51,35 @@ func main() {
 			IncludedInSearchDropDown: true,
 		},
 		{
-			Name:                     "dt",
-			DataType:                 "time",
-			IsNull:                   false,
-			IsIndexed:                true,
+			Name:                     "description",
+			DataType:                 "string",
+			DataTypeLen:              150,
+			IsNull:                   true,
+			IsIndexed:                false,
 			IncludedInSearchDropDown: false,
 		},
 		{
-			Name:                     "location_type",
+			Name:                     "type",
 			DataType:                 "string",
 			DataTypeLen:              50,
-			IsNull:                   true,
-			IsIndexed:                false,
-			IncludedInSearchDropDown: false,
-		},
-		{
-			Name:                     "address",
-			DataType:                 "string",
-			DataTypeLen:              200,
-			IsNull:                   true,
-			IsIndexed:                false,
-			IncludedInSearchDropDown: false,
-		},
-		{
-			Name:                     "notes",
-			DataType:                 "string",
-			DataTypeLen:              200,
-			IsNull:                   true,
-			IsIndexed:                false,
-			IncludedInSearchDropDown: false,
-		},
-		{
-			Name:      "organization_id",
-			DataType:  "uuid",
-			RefTable:  &RefTable{Name: "organizations", Model: "Organization", SelectColumns: []string{"id", "name"}},
-			IsNull:    false,
-			IsIndexed: true,
-		},
-		{
-			Name:      "team_id",
-			DataType:  "uuid",
-			RefTable:  &RefTable{Name: "team", Model: "Team", SelectColumns: []string{"id", "name"}},
-			IsNull:    false,
-			IsIndexed: true,
+			IsNull:                   false,
+			IsIndexed:                true,
+			IncludedInSearchDropDown: true,
 		},
 	}
+	singleTableCrud := CrudGen{TableName: "tag", ListSearchColumn: "name", AliasTableNameInSelect: "t", IsHistoryTableNeeded: true, Columns: columns}
+	fmt.Printf(singleTableCrud.TableName) //just to avoid unused error
 
-	codeGen := CodeGen{TableName: "event", ListSearchColumn: "name", AliasTableNameInSelect: "e", IsHistoryTableNeeded: true, Columns: columns}
+	many2many := ManyToManyLink{Table1: "event", Table2: "photo", Alias: "ep"}
 
 	//read template folder
-	templateFiles, err := os.ReadDir("./tmpl/")
+	templateFiles, err := os.ReadDir("./tmplMany2ManyLink/")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for _, templateFile := range templateFiles {
-		templateFileName := path.Join("./tmpl", templateFile.Name())
+		templateFileName := path.Join("./tmplMany2ManyLink", templateFile.Name())
 
 		baseName := path.Base(templateFileName)
 		tmpl, err := template.New(baseName).Funcs(template.FuncMap{
@@ -131,7 +111,7 @@ func main() {
 		}
 		defer f.Close()
 
-		err = tmpl.Execute(f, codeGen)
+		err = tmpl.Execute(f, many2many)
 		if err != nil {
 			panic(err)
 		}

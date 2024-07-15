@@ -1,0 +1,83 @@
+package model
+
+import (
+	"ss-server/internal/dto"
+	"time"
+
+	"github.com/uptrace/bun"
+)
+{{$Table1FirstCaps := pascalCase .Table1}}
+{{$Table2FirstCaps := pascalCase .Table2}}
+{{$BothTableFirstCaps := print $Table1FirstCaps $Table2FirstCaps}}
+
+type {{$BothTableFirstCaps}} struct {
+	bun.BaseModel `bun:"table:{{.Table1}}_{{.Table2}},alias:{{.Alias}}"`
+
+	Id      string `bun:"id,pk,type:uuid"`
+	{{$Table1FirstCaps}}Id  string `bun:"{{.Table1}}_id,type:uuid"`
+	{{$Table2FirstCaps}}Id  string `bun:"{{.Table2}}_id,type:uuid"`
+
+	{{$Table1FirstCaps}} {{$Table1FirstCaps}} `bun:"rel:belongs-to,join:{{.Table1}}_id=id"`
+	{{$Table2FirstCaps}} {{$Table2FirstCaps}} `bun:"rel:belongs-to,join:{{.Table2}}_id=id"`
+
+	CreatedAt   time.Time  `bun:",nullzero,notnull,default:current_timestamp"`
+	DeletedAt   *time.Time `bun:",nullzero"`
+	CreatedById string     `bun:"created_by,nullzero,notnull"`
+	DeletedById *string    `bun:"deleted_by,nullzero"`
+
+	CreatedBy UserIdEmail  `bun:"rel:belongs-to,join:created_by=id"`
+	DeletedBy *UserIdEmail `bun:"rel:belongs-to,join:deleted_by=id"`
+}
+
+func (mdl {{$BothTableFirstCaps}}) ToDto() dto.{{$BothTableFirstCaps}} {
+	d := dto.{{$BothTableFirstCaps}}{
+		Id: mdl.Id,
+		{{$Table1FirstCaps}}: dto.{{$Table1FirstCaps}}Min{
+			Id:   mdl.{{$Table1FirstCaps}}.Id,
+			Name: mdl.{{$Table1FirstCaps}}.Name,
+		},
+		{{$Table2FirstCaps}}: dto.{{$Table2FirstCaps}}Min{
+			Id:   mdl.{{$Table2FirstCaps}}.Id,
+			Name: mdl.{{$Table2FirstCaps}}.Name,
+		},
+		CreatedAt: mdl.CreatedAt,
+		CreatedBy: dto.IdEmail{
+			Id:    mdl.CreatedBy.ID,
+			Email: mdl.CreatedBy.Email,
+		},
+	}
+
+	return d
+}
+
+func (mdl {{$BothTableFirstCaps}}) ToDtoWithDelete() dto.{{$BothTableFirstCaps}}IncludingDelete {
+	d := dto.{{$BothTableFirstCaps}}IncludingDelete{
+		Id: mdl.Id,
+		{{$Table1FirstCaps}}: dto.{{$Table1FirstCaps}}Min{
+			Id:   mdl.{{$Table1FirstCaps}}.Id,
+			Name: mdl.{{$Table1FirstCaps}}.Name,
+		},
+		{{$Table2FirstCaps}}: dto.{{$Table2FirstCaps}}Min{
+			Id:   mdl.{{$Table2FirstCaps}}.Id,
+			Name: mdl.{{$Table2FirstCaps}}.Name,
+		},
+		CreatedAt: mdl.CreatedAt,
+		CreatedBy: dto.IdEmail{
+			Id:    mdl.CreatedBy.ID,
+			Email: mdl.CreatedBy.Email,
+		},
+	}
+
+	if mdl.DeletedAt != nil {
+		d.DeletedAt = mdl.DeletedAt
+	}
+
+	if mdl.DeletedBy != nil {
+		d.DeletedBy = &dto.IdEmail{
+			Id:    mdl.DeletedBy.ID,
+			Email: mdl.DeletedBy.Email,
+		}
+	}
+
+	return d
+}

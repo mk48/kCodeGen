@@ -1,0 +1,41 @@
+package dto
+
+import (
+	"time"
+)
+
+{{$Table1FirstCaps := pascalCase .Table1}}
+{{$Table2FirstCaps := pascalCase .Table2}}
+{{$BothTableFirstCaps := print $Table1FirstCaps $Table2FirstCaps}}
+
+type {{$BothTableFirstCaps}} struct {
+	Id string `json:"id"`
+
+	{{$Table1FirstCaps}} {{$Table1FirstCaps}}Min `json:"{{.Table1}}"`
+	{{$Table2FirstCaps}} {{$Table2FirstCaps}}Min `json:"{{.Table2}}"`
+
+	CreatedAt time.Time `json:"createdAt"`
+	CreatedBy IdEmail   `json:"createdBy"`
+}
+
+type {{$BothTableFirstCaps}}Request struct {
+	{{$Table1FirstCaps}}Id string `json:"{{camelCase .Table1}}Id" validate:"required"`
+	{{$Table2FirstCaps}}Id string `json:"{{camelCase .Table2}}Id" validate:"required"`
+}
+
+type {{$BothTableFirstCaps}}IncludingDelete struct {
+	Id string `json:"id"`
+
+	{{$Table1FirstCaps}} {{$Table1FirstCaps}}Min `json:"{{.Table1}}"`
+	{{$Table2FirstCaps}} {{$Table2FirstCaps}}Min `json:"{{.Table2}}"`
+
+	CreatedAt time.Time  `json:"createdAt"`
+	CreatedBy IdEmail    `json:"createdBy"`
+	DeletedAt *time.Time `json:"deletedAt"`
+	DeletedBy *IdEmail   `json:"deletedBy"`
+}
+
+type {{$BothTableFirstCaps}}ListPaginationResponse struct {
+	Pagination PaginationResult `json:"pagination"`
+	Items      []{{$BothTableFirstCaps}}       `json:"items"`
+}

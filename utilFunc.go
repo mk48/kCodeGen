@@ -149,7 +149,7 @@ func generateSelectForRefColumn(columns []Column) string {
 	return selectColumnsWithComma
 }
 
-func joinInSelect(cg CodeGen) string {
+func joinInSelect(cg CrudGen) string {
 	/*
 		LEFT JOIN "users" "uPerson" ON "uPerson"."person_id" = "p"."id"
 		INNER JOIN "users" "uCreatedBy" ON "uCreatedBy"."id" = "p"."created_by"

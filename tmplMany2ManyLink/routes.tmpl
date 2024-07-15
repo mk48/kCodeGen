@@ -1,0 +1,24 @@
+{{$Table1FirstCaps := pascalCase .Table1}}
+{{$Table2FirstCaps := pascalCase .Table2}}
+{{$BothTableFirstCaps := print $Table1FirstCaps $Table2FirstCaps}}
+
+//----------------------- {{$Table1FirstCaps}}-{{$Table2FirstCaps}} -----------------------
+	apiGroup.POST("/{{.Table1}}-{{.Table2}}", app.Create{{$BothTableFirstCaps}}Handler,
+		app.approvedUserMiddleware,
+		app.allowedRolesMiddleware([]string{"superadmin", "admin", "photographer"}),
+	)
+
+	apiGroup.GET("/{{.Table1}}-{{.Table2}}/by-{{.Table1}}/:{{.Table1}}-id", app.List{{$BothTableFirstCaps}}By{{$Table1FirstCaps}}Handler,
+		app.approvedUserMiddleware,
+		app.paginationMiddleware,
+	)
+
+	apiGroup.GET("/{{.Table1}}-{{.Table2}}/by-{{.Table2}}/:{{.Table2}}-id", app.List{{$BothTableFirstCaps}}By{{$Table2FirstCaps}}Handler,
+		app.approvedUserMiddleware,
+		app.paginationMiddleware,
+	)
+
+	apiGroup.DELETE("/{{.Table1}}-{{.Table2}}", app.Delete{{$BothTableFirstCaps}}Handler,
+		app.approvedUserMiddleware,
+		app.allowedRolesMiddleware([]string{"superadmin", "admin", "photographer"}),
+	)

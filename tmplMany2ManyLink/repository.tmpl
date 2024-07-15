@@ -1,0 +1,111 @@
+package repository
+
+import (
+	"context"
+	"ss-server/internal/model"
+	"time"
+
+	"github.com/uptrace/bun"
+)
+{{$Table1FirstCaps := pascalCase .Table1}}
+{{$Table2FirstCaps := pascalCase .Table2}}
+{{$BothTableFirstCaps := print $Table1FirstCaps $Table2FirstCaps}}
+
+type {{$BothTableFirstCaps}}Repository struct{}
+
+//------------------------------------------ func ----------------------------------------
+
+func (repo {{$BothTableFirstCaps}}Repository) Create(ctx context.Context, db bun.IDB, mdl *model.{{$BothTableFirstCaps}}) error {
+	_, err := db.NewInsert().Model(mdl).Exec(ctx)
+	return err
+}
+
+func (repo {{$BothTableFirstCaps}}Repository) ListBy{{$Table1FirstCaps}}(
+	ctx context.Context,
+	db bun.IDB,
+	{{.Table1}}Id string,
+	pageNo int,
+	recordsPerPage int,
+) ([]model.{{$BothTableFirstCaps}}, int, error) {
+	mdl := new([]model.{{$BothTableFirstCaps}})
+
+	count, err := db.NewSelect().
+		Model(mdl).
+		Relation("{{$Table1FirstCaps}}", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column(
+				"id",
+				"name",
+			)
+		}).
+		Relation("{{$Table2FirstCaps}}", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column(
+				"id",
+				"name",
+				"type",
+			)
+		}).
+		Relation("CreatedBy", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column("id", "email")
+		}).
+		Where("{{.Alias}}.{{.Table1}}_id = ?", {{.Table1}}Id).
+		Where("{{.Alias}}.deleted_at IS NULL").
+		Order("{{.Alias}}.created_at DESC").
+		Limit(recordsPerPage).Offset(recordsPerPage * (pageNo - 1)).
+		ScanAndCount(ctx)
+
+	return *mdl, count, err
+}
+
+func (repo {{$BothTableFirstCaps}}Repository) ListBy{{$Table2FirstCaps}}(
+	ctx context.Context,
+	db bun.IDB,
+	{{.Table2}}Id string,
+	pageNo int,
+	recordsPerPage int,
+) ([]model.{{$BothTableFirstCaps}}, int, error) {
+	mdl := new([]model.{{$BothTableFirstCaps}})
+
+	count, err := db.NewSelect().
+		Model(mdl).
+		Relation("{{$Table1FirstCaps}}", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column(
+				"id",
+				"name",
+			)
+		}).
+		Relation("{{$Table2FirstCaps}}", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column(
+				"id",
+				"name",
+				"type",
+			)
+		}).
+		Relation("CreatedBy", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Column("id", "email")
+		}).
+		Where("{{.Alias}}.{{.Table2}}_id = ?", {{.Table2}}Id).
+		Where("{{.Alias}}.deleted_at IS NULL").
+		Order("{{.Alias}}.created_at DESC").
+		Limit(recordsPerPage).Offset(recordsPerPage * (pageNo - 1)).
+		ScanAndCount(ctx)
+
+	return *mdl, count, err
+}
+
+func (repo {{$BothTableFirstCaps}}Repository) Delete(ctx context.Context, db bun.IDB, {{.Table1}}Id string, {{.Table2}}Id string, loggedInUserId string) error {
+
+	var now = time.Now()
+
+	mdl := new(model.{{$BothTableFirstCaps}})
+	mdl.DeletedAt = &now
+	mdl.DeletedById = &loggedInUserId
+
+	_, err := db.NewUpdate().Model(mdl).
+		Column("deleted_at").
+		Column("deleted_by").
+		Where("{{.Alias}}.deleted_at IS NULL").
+		Where("{{.Alias}}.{{.Table1}}_id = ?", {{.Table1}}Id).
+		Where("{{.Alias}}.{{.Table2}}_id = ?", {{.Table2}}Id).
+		Exec(ctx)
+	return err
+}

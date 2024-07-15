@@ -1,0 +1,14 @@
+{{$Table1FirstCaps := pascalCase .Table1}}
+{{$Table2FirstCaps := pascalCase .Table2}}
+{{$BothTableFirstCaps := print $Table1FirstCaps $Table2FirstCaps}}
+
+	//----------------------------------- {{$Table1FirstCaps}} {{$Table2FirstCaps}} ---------------------------
+	{{$BothTableFirstCaps}} interface {
+		Create(ctx context.Context, inputDto dto.{{$BothTableFirstCaps}}Request, loggedInUserId string) (*uuid.UUID, error)
+		ListBy{{$Table1FirstCaps}}(ctx context.Context, {{.Table1}}Id string, pagination dto.Pagination) (*dto.{{$BothTableFirstCaps}}ListPaginationResponse, error)
+		ListBy{{$Table2FirstCaps}}(ctx context.Context, {{.Table2}}Id string, pagination dto.Pagination) (*dto.{{$BothTableFirstCaps}}ListPaginationResponse, error)
+		Delete(ctx context.Context, {{.Table1}}Id string, {{.Table2}}Id string, loggedInUserId string) error
+	}
+
+
+    {{$BothTableFirstCaps}}:       {{$BothTableFirstCaps}}Service{BunDB: bunDB, Repos: repos},

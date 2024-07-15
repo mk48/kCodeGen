@@ -1,0 +1,29 @@
+{{$Table1FirstCaps := pascalCase .Table1}}
+{{$Table2FirstCaps := pascalCase .Table2}}
+{{$BothTableFirstCaps := print $Table1FirstCaps $Table2FirstCaps}}
+
+//---------------------------------------- {{$Table1FirstCaps}} {{$Table2FirstCaps}} --------------------------------
+	{{$BothTableFirstCaps}} interface {
+		Create(ctx context.Context, db bun.IDB, mdl *model.{{$BothTableFirstCaps}}) error
+
+		ListBy{{$Table1FirstCaps}}(
+			ctx context.Context,
+			db bun.IDB,
+			{{.Table1}}Id string,
+			pageNo int,
+			recordsPerPage int,
+		) ([]model.{{$BothTableFirstCaps}}, int, error)
+
+		ListBy{{$Table2FirstCaps}}(
+			ctx context.Context,
+			db bun.IDB,
+			{{.Table2}}Id string,
+			pageNo int,
+			recordsPerPage int,
+		) ([]model.{{$BothTableFirstCaps}}, int, error)
+
+		Delete(ctx context.Context, db bun.IDB, {{.Table1}}Id string, {{.Table2}}Id string, loggedInUserId string) error
+	}
+
+//----------------------------
+    {{$BothTableFirstCaps}}:     {{$BothTableFirstCaps}}Repository{},

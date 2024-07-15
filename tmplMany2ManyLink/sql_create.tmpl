@@ -1,0 +1,19 @@
+-- +migrate Up
+CREATE TABLE "{{.Table1}}_{{.Table2}}" (
+    "id" uuid PRIMARY KEY,
+    "{{.Table1}}_id" uuid NOT NULL REFERENCES "{{.Table1}}"(id),
+    "{{.Table2}}_id" uuid NOT NULL REFERENCES "{{.Table2}}"(id),
+
+    "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT (now()),
+    "created_by" uuid NOT NULL REFERENCES users(id),
+    "deleted_at" TIMESTAMP WITH TIME ZONE NULL,
+    "deleted_by" uuid NULL REFERENCES users(id)
+);
+CREATE INDEX "{{.Table1}}_{{.Table2}}_{{.Table1}}_idx" ON "{{.Table1}}_{{.Table2}}" ("{{.Table1}}_id");
+CREATE INDEX "{{.Table1}}_{{.Table2}}_{{.Table2}}_idx" ON "{{.Table1}}_{{.Table2}}" ("{{.Table2}}_id");
+CREATE INDEX "{{.Table1}}_{{.Table2}}_createdBy_idx" ON "{{.Table1}}_{{.Table2}}" ("created_by");
+CREATE INDEX "{{.Table1}}_{{.Table2}}_deletedBy_idx" ON "{{.Table1}}_{{.Table2}}" ("deleted_by");
+CREATE INDEX "{{.Table1}}_{{.Table2}}_deletedAt_idx" ON "{{.Table1}}_{{.Table2}}" ("deleted_at");
+
+-- +migrate Down
+DROP TABLE IF EXISTS "{{.Table1}}_{{.Table2}}" CASCADE;
