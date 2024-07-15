@@ -4,9 +4,9 @@ import (
 	"time"
 )
 
-{{$Table1FirstCaps := pascalCase .Table1}}
-{{$Table2FirstCaps := pascalCase .Table2}}
-{{$BothTableFirstCaps := print $Table1FirstCaps $Table2FirstCaps}}
+{{$Table1FirstCaps := pascalCase .Table1 -}}
+{{$Table2FirstCaps := pascalCase .Table2 -}}
+{{$BothTableFirstCaps := print $Table1FirstCaps $Table2FirstCaps -}}
 
 type {{$BothTableFirstCaps}} struct {
 	Id string `json:"id"`

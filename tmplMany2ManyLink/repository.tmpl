@@ -7,9 +7,9 @@ import (
 
 	"github.com/uptrace/bun"
 )
-{{$Table1FirstCaps := pascalCase .Table1}}
-{{$Table2FirstCaps := pascalCase .Table2}}
-{{$BothTableFirstCaps := print $Table1FirstCaps $Table2FirstCaps}}
+{{$Table1FirstCaps := pascalCase .Table1 -}}
+{{$Table2FirstCaps := pascalCase .Table2 -}}
+{{$BothTableFirstCaps := print $Table1FirstCaps $Table2FirstCaps -}}
 
 type {{$BothTableFirstCaps}}Repository struct{}
 

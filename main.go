@@ -70,7 +70,7 @@ func main() {
 	singleTableCrud := CrudGen{TableName: "tag", ListSearchColumn: "name", AliasTableNameInSelect: "t", IsHistoryTableNeeded: true, Columns: columns}
 	fmt.Printf(singleTableCrud.TableName) //just to avoid unused error
 
-	many2many := ManyToManyLink{Table1: "event", Table2: "photo", Alias: "ep"}
+	many2many := ManyToManyLink{Table1: "photo", Table2: "tag", Alias: "pt"}
 
 	//read template folder
 	templateFiles, err := os.ReadDir("./tmplMany2ManyLink/")
