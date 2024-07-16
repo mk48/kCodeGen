@@ -79,7 +79,7 @@ func (service {{$TableNameFirstCaps}}Service) Update(ctx context.Context, id str
 	}
 
 	err := service.BunDB.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		if err := service.Repos.{{$TableNameFirstCaps}}.Update(ctx, service.BunDB, id, org, loggedInUserId); err != nil {
+		if err := service.Repos.{{$TableNameFirstCaps}}.Update(ctx, tx, id, org, loggedInUserId); err != nil {
 			return err
 		}
 		return nil
